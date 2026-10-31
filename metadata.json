@@ -1,0 +1,6 @@
+{
+  "name": "UNMADE GALLERY",
+  "description": "Premium handmade resin art e-commerce boutique specializing in floral preserved jewellery, personalized keepsakes, and bespoke artistic creations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

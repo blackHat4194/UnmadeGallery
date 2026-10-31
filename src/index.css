@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: 'Cormorant Garamond', Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --color-ivory: #F7F3EA;
+  --color-emerald-deep: #164B3B;
+  --color-emerald-light: #20634f;
+  --color-gold: #C6A15B;
+  --color-gold-light: #dfc285;
+  --color-espresso: #29231F;
+  --color-espresso-muted: #564c45;
+  --color-beige: #E8DFD0;
+  --color-beige-subtle: #f2ece2;
+}
+
+/* Custom scrollbar and smooth luxury feel */
+html {
+  font-family: var(--font-sans);
+  scroll-behavior: smooth;
+}
+
+h1, h2, h3, .font-serif {
+  font-family: var(--font-serif);
+}
+
+/* Resin shine & shimmer animations */
+@keyframes resinShimmer {
+  0% { transform: translateX(-100%) rotate(25deg); opacity: 0; }
+  50% { opacity: 0.35; }
+  100% { transform: translateX(200%) rotate(25deg); opacity: 0; }
+}
+
+.resin-glass-card {
+  position: relative;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid rgba(200, 185, 165, 0.45);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.resin-glass-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px -8px rgba(41, 35, 31, 0.08);
+}
+
+.resin-shimmer-effect::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    60deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.45) 50%,
+    transparent 65%
+  );
+  transform: translateX(-100%) rotate(25deg);
+  transition: transform 0.75s ease-in-out;
+  pointer-events: none;
+}
+
+.resin-glass-card:hover .resin-shimmer-effect::after {
+  transform: translateX(100%) rotate(25deg);
+}
+
+/* Tabular figures for prices */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
