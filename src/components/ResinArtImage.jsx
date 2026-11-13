@@ -3,22 +3,40 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 export const ResinArtImage = ({
   type,
+  imageUrl,
   alt,
   className = 'w-full h-full',
   showShimmer = true
 }) => {
+  const [imgFailed, setImgFailed] = useState(false);
+
+  useEffect(() => {
+    setImgFailed(false);
+  }, [imageUrl]);
+
+  const showUploadedPhoto = Boolean(imageUrl) && !imgFailed;
+
   return (
     <div
       className={`relative overflow-hidden select-none bg-[#F7F3EA] flex items-center justify-center ${className}`}
       role="img"
       aria-label={alt}
     >
-      {/* Dynamic Resin Artwork Canvas */}
-      {type === 'floral-crystal' && (
+      {showUploadedPhoto ? (
+        <img
+          src={imageUrl}
+          alt={alt}
+          onError={() => setImgFailed(true)}
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <>
+          {/* Dynamic Resin Artwork Canvas */}
+          {type === 'floral-crystal' && (
         <svg viewBox="0 0 400 400" className="w-full h-full object-cover">
           <defs>
             <radialGradient id="floralGlow" cx="50%" cy="45%" r="60%">
@@ -453,6 +471,8 @@ export const ResinArtImage = ({
             UNMADE GALLERY
           </text>
         </svg>
+      )}
+        </>
       )}
 
       {/* Subtle Shimmer Light Sweep on hover */}

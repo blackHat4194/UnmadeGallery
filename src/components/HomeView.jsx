@@ -7,10 +7,14 @@ import React from 'react';
 import { ArrowRight, Sparkles, Star } from 'lucide-react';
 import { ProductCard } from './ProductCard.jsx';
 import { ResinArtImage } from './ResinArtImage.jsx';
-import { CUSTOMER_REVIEWS } from '../data/products.js';
+import { CUSTOMER_REVIEWS, FEATURED_COLLECTIONS, STORY_SHOWCASE } from '../data/products.js';
+import { resolveFeaturedCollections, resolveStoryShowcase } from '../lib/ecommerceLogic.js';
 
 export const HomeView = ({
   products,
+  collections = FEATURED_COLLECTIONS,
+  storyShowcase = STORY_SHOWCASE,
+  reviews = CUSTOMER_REVIEWS,
   wishlistIds,
   onToggleWishlist,
   onAddToCart,
@@ -18,33 +22,9 @@ export const HomeView = ({
   onNavigate
 }) => {
   const bestSellers = products.filter((p) => p.isBestSeller).slice(0, 4);
-
-  const collections = [
-    {
-      name: 'Floral Elegance',
-      subtitle: 'Wild botanical blossoms encapsulated in crystal domes',
-      imageType: 'floral-crystal',
-      id: 'Floral Elegance'
-    },
-    {
-      name: 'Emerald Collection',
-      subtitle: 'Liquid malachite marbling infused with molten 24k gold veins',
-      imageType: 'emerald-gold',
-      id: 'Emerald Collection'
-    },
-    {
-      name: 'Golden Details',
-      subtitle: 'Neoclassical warm amber resin arches & delicate leaf foils',
-      imageType: 'golden-amber',
-      id: 'Golden Details'
-    },
-    {
-      name: 'Personalised Keepsakes',
-      subtitle: 'Faceted geometric prisms for bridal florals & heirloom memories',
-      imageType: 'keepsake-pyramid',
-      id: 'Personalised Keepsakes'
-    }
-  ];
+  const resolvedCollections = resolveFeaturedCollections(collections, products);
+  const resolvedStory = resolveStoryShowcase(storyShowcase, products);
+  const heroProduct = resolvedStory.heroProduct;
 
   return (
     <div className="space-y-24">
@@ -106,20 +86,25 @@ export const HomeView = ({
               <div className="relative aspect-4/3 sm:aspect-square max-w-lg mx-auto rounded-2xl overflow-hidden bg-white shadow-xl border border-[#E8DFD0] p-3">
                 <div className="w-full h-full rounded-xl overflow-hidden bg-[#F7F3EA] relative">
                   <ResinArtImage
-                    type="floral-crystal"
-                    alt="Aura Botanical Pendant with preserved baby's breath and 24k gold leaf"
+                    type={heroProduct?.resinArtworkType || 'floral-crystal'}
+                    imageUrl={heroProduct?.imageUrl}
+                    alt={heroProduct?.name || "Aura Botanical Pendant with preserved baby's breath and 24k gold leaf"}
                     className="w-full h-full"
                   />
                   {/* Floating Editorial Badge */}
                   <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-md p-4 rounded-xl border border-[#E8DFD0] flex items-center justify-between shadow-md">
-                    <div>
+                    <div className="min-w-0 pr-3">
                       <p className="text-[10px] font-semibold uppercase tracking-widest text-[#C6A15B]">Featured Masterwork</p>
-                      <h4 className="font-serif text-base font-semibold text-[#164B3B]">Aura Botanical Pendant</h4>
-                      <p className="text-xs text-[#29231F]/70">Preserved Gypsophila &amp; 24K Gold</p>
+                      <h4 className="font-serif text-base font-semibold text-[#164B3B] truncate">
+                        {heroProduct?.name || 'Aura Botanical Pendant'}
+                      </h4>
+                      <p className="text-xs text-[#29231F]/70 truncate">
+                        {heroProduct?.subtitle || 'Preserved Gypsophila & 24K Gold'}
+                      </p>
                     </div>
                     <button
-                      onClick={() => onNavigate('shop')}
-                      className="px-3.5 py-2 bg-[#164B3B] text-[#F7F3EA] text-xs font-semibold rounded-lg hover:bg-[#20634f] transition-colors cursor-pointer"
+                      onClick={() => (heroProduct ? onSelectProduct(heroProduct) : onNavigate('shop'))}
+                      className="px-3.5 py-2 bg-[#164B3B] text-[#F7F3EA] text-xs font-semibold rounded-lg hover:bg-[#20634f] transition-colors cursor-pointer shrink-0"
                     >
                       View Piece
                     </button>
@@ -146,7 +131,7 @@ export const HomeView = ({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {collections.map((col) => (
+          {resolvedCollections.map((col) => (
             <div
               key={col.name}
               onClick={() => onNavigate('shop', { collection: col.id })}
@@ -155,6 +140,7 @@ export const HomeView = ({
               <div className="aspect-square w-full bg-[#F7F3EA] overflow-hidden border-b border-[#E8DFD0]">
                 <ResinArtImage
                   type={col.imageType}
+                  imageUrl={col.imageUrl}
                   alt={col.name}
                   className="w-full h-full transition-transform duration-500 group-hover:scale-105"
                 />
@@ -248,21 +234,29 @@ export const HomeView = ({
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-4">
                   <div className="aspect-3/4 rounded-2xl overflow-hidden bg-[#F7F3EA] border border-[#E8DFD0] shadow-md">
-                    <ResinArtImage type="botanical-teardrop" alt="Hydrangea botanical pendant" />
+                    <ResinArtImage
+                      type={resolvedStory.primaryStory.imageType}
+                      imageUrl={resolvedStory.primaryStory.imageUrl}
+                      alt={resolvedStory.primaryStory.title}
+                    />
                   </div>
                   <div className="p-4 bg-[#F7F3EA] rounded-xl border border-[#E8DFD0] text-center">
-                    <p className="font-serif font-medium text-xs text-[#164B3B]">Real Wild Botanicals</p>
-                    <p className="text-[10px] text-[#29231F]/60">Ethically hand-foraged</p>
+                    <p className="font-serif font-medium text-xs text-[#164B3B] truncate">{resolvedStory.primaryStory.title}</p>
+                    <p className="text-[10px] text-[#29231F]/60 truncate">{resolvedStory.primaryStory.subtitle}</p>
                   </div>
                 </div>
 
                 <div className="space-y-4 pt-8">
                   <div className="p-4 bg-[#164B3B] text-[#F7F3EA] rounded-xl shadow-md text-center">
-                    <p className="font-serif font-medium text-sm text-[#C6A15B]">24K Gold Flakes</p>
-                    <p className="text-[10px] text-[#E8DFD0]/80">Suspended in glass depth</p>
+                    <p className="font-serif font-medium text-sm text-[#C6A15B] truncate">{resolvedStory.secondaryStory.title}</p>
+                    <p className="text-[10px] text-[#E8DFD0]/80 truncate">{resolvedStory.secondaryStory.subtitle}</p>
                   </div>
                   <div className="aspect-3/4 rounded-2xl overflow-hidden bg-[#F7F3EA] border border-[#E8DFD0] shadow-md">
-                    <ResinArtImage type="keepsake-pyramid" alt="Handmade keepsake pyramid" />
+                    <ResinArtImage
+                      type={resolvedStory.secondaryStory.imageType}
+                      imageUrl={resolvedStory.secondaryStory.imageUrl}
+                      alt={resolvedStory.secondaryStory.title}
+                    />
                   </div>
                 </div>
               </div>
@@ -312,7 +306,7 @@ export const HomeView = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {CUSTOMER_REVIEWS.map((review) => (
+          {reviews.map((review) => (
             <div
               key={review.id}
               className="bg-white p-6 rounded-2xl border border-[#E8DFD0] shadow-xs flex flex-col justify-between"

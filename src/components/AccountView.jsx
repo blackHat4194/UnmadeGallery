@@ -251,7 +251,7 @@ export const AccountView = ({
                       <div key={item.product.id} className="flex items-center justify-between text-xs p-2.5 bg-[#F7F3EA] rounded-lg border border-[#E8DFD0]">
                         <div className="flex items-center gap-3">
                           <div className="w-12 h-12 rounded bg-white overflow-hidden shrink-0 border border-[#E8DFD0]">
-                            <ResinArtImage type={item.product.resinArtworkType} alt={item.product.name} />
+                            <ResinArtImage type={item.product.resinArtworkType} imageUrl={item.product.imageUrl} alt={item.product.name} />
                           </div>
                           <div>
                             <p className="font-medium text-[#29231F]">{item.product.name}</p>
@@ -303,7 +303,7 @@ export const AccountView = ({
                 <div key={p.id} className="bg-white rounded-xl border border-[#E8DFD0] p-4 flex flex-col justify-between shadow-xs">
                   <div onClick={() => onSelectProduct(p)} className="cursor-pointer">
                     <div className="aspect-square rounded-lg overflow-hidden bg-[#F7F3EA] mb-3 border border-[#E8DFD0]">
-                      <ResinArtImage type={p.resinArtworkType} alt={p.name} />
+                      <ResinArtImage type={p.resinArtworkType} imageUrl={p.imageUrl} alt={p.name} />
                     </div>
                     <p className="text-[11px] text-[#C6A15B] uppercase font-semibold">{p.category}</p>
                     <h3 className="font-serif text-base font-medium text-[#29231F] mt-0.5">{p.name}</h3>

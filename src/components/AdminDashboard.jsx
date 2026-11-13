@@ -14,10 +14,35 @@ import {
   Edit3,
   ArrowLeft,
   Layers,
-  Search
+  Search,
+  Upload,
+  Trash2,
+  CheckCircle2,
+  Image as ImageIcon
 } from 'lucide-react';
-import { formatINR } from '../lib/ecommerceLogic.js';
+import { formatINR, validateProductInput } from '../lib/ecommerceLogic.js';
 import { ResinArtImage } from './ResinArtImage.jsx';
+
+const EMPTY_PRODUCT_FORM = {
+  name: '',
+  subtitle: '',
+  category: 'Floral Jewellery',
+  collection: 'Floral Elegance',
+  price: 2500,
+  originalPrice: '',
+  stock: 5,
+  description: '',
+  materials: 'UV-Stabilized Optical Resin, 18K Gold Plating',
+  inclusions: 'Real dried botanicals & 24k gold flakes',
+  isBestSeller: true,
+  isNewArrival: true,
+  useAsCollectionCover: false,
+  featureInStory: false,
+  featureInHero: false,
+  photoDataUrl: '',
+  photoFileName: '',
+  imageUrl: ''
+};
 
 export const AdminDashboard = ({
   products,
@@ -25,6 +50,7 @@ export const AdminDashboard = ({
   customRequests,
   onUpdateProduct,
   onAddProduct,
+  onDeleteProduct,
   onUpdateOrderStatus,
   onUpdateCustomStatus,
   onExitAdmin
@@ -32,61 +58,172 @@ export const AdminDashboard = ({
   const [activeTab, setActiveTab] = useState('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [editingProduct, setEditingProduct] = useState(null);
+  const [editForm, setEditForm] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
-
-  // New product form state
-  const [newProdName, setNewProdName] = useState('');
-  const [newProdCategory, setNewProdCategory] = useState('Floral Jewellery');
-  const [newProdPrice, setNewProdPrice] = useState(2500);
-  const [newProdStock, setNewProdStock] = useState(5);
-  const [newProdSubtitle, setNewProdSubtitle] = useState('');
+  const [newForm, setNewForm] = useState(EMPTY_PRODUCT_FORM);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [statusBanner, setStatusBanner] = useState(null);
 
   // Overview metrics
   const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
   const lowStockProducts = products.filter((p) => p.stock <= 4);
   const pendingOrders = orders.filter((o) => o.status !== 'Delivered');
 
-  const handleSaveEdit = (e) => {
-    e.preventDefault();
-    if (editingProduct) {
-      onUpdateProduct(editingProduct);
-      setEditingProduct(null);
-    }
+  const showBanner = (message) => {
+    setStatusBanner(message);
+    setTimeout(() => setStatusBanner(null), 4000);
   };
 
-  const handleCreateProduct = (e) => {
-    e.preventDefault();
-    if (!newProdName.trim()) return;
+  const handlePhotoFileChange = (e, setter) => {
+    setFormError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    const newProduct = {
-      id: `unmade-${Date.now().toString().slice(-4)}`,
-      name: newProdName,
-      subtitle: newProdSubtitle || 'Handcrafted botanical resin artwork',
-      category: newProdCategory,
-      collection: 'Floral Elegance',
-      price: Number(newProdPrice),
-      stock: Number(newProdStock),
-      rating: 5.0,
-      reviewCount: 1,
-      description: 'Exclusive hand-poured studio collection piece.',
-      details: ['Hand-poured in small batches', 'UV-resistant optical resin', 'Finished with 18k gold accents'],
-      specifications: {
-        materials: 'Optical Resin, Fine Pigments',
-        inclusions: 'Real dried botanical flora',
-        hardware: '18K Gold Plated Brass',
-        dimensions: 'Handcrafted dimensions',
-        weight: '12g',
-        curingTime: '72 hours'
-      },
-      careInstructions: ['Keep away from harsh solvents', 'Store in dry pouch'],
-      resinArtworkType: 'floral-crystal',
-      inStock: Number(newProdStock) > 0
+    if (!file.type.startsWith('image/')) {
+      setFormError('Please select a valid image file (PNG, JPG, WEBP).');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setFormError('Image size must be under 10 MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setter((prev) => ({
+        ...prev,
+        photoDataUrl: typeof reader.result === 'string' ? reader.result : '',
+        photoFileName: file.name
+      }));
     };
+    reader.readAsDataURL(file);
+  };
 
-    onAddProduct(newProduct);
+  const updateNewField = (field, value) => {
+    setNewForm((prev) => ({ ...prev, [field]: value }));
+    if (fieldErrors[field]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+    if (formError) setFormError(null);
+  };
+
+  const updateEditField = (field, value) => {
+    setEditForm((prev) => ({ ...prev, [field]: value }));
+    if (fieldErrors[field]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+    if (formError) setFormError(null);
+  };
+
+  const openEditModal = (product) => {
+    setFormError(null);
+    setFieldErrors({});
+    setConfirmDeleteId(null);
+    setEditingProduct(product);
+    setEditForm({
+      name: product.name || '',
+      subtitle: product.subtitle || '',
+      category: product.category || 'Floral Jewellery',
+      collection: product.collection || 'Floral Elegance',
+      price: product.price ?? 2500,
+      originalPrice: product.originalPrice ?? '',
+      stock: product.stock ?? 0,
+      description: product.description || '',
+      materials: product.specifications?.materials || '',
+      inclusions: product.specifications?.inclusions || '',
+      isBestSeller: Boolean(product.isBestSeller),
+      isNewArrival: Boolean(product.isNewArrival),
+      useAsCollectionCover: false,
+      featureInStory: false,
+      featureInHero: false,
+      photoDataUrl: '',
+      photoFileName: '',
+      imageUrl: product.imageUrl || ''
+    });
+  };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!editingProduct || !editForm) return;
+
+    const validation = validateProductInput(editForm, products, editingProduct.id);
+    if (!validation.isValid) {
+      setFieldErrors(validation.errors);
+      setFormError(Object.values(validation.errors)[0] || 'Please review the highlighted fields.');
+      return;
+    }
+
+    setFieldErrors({});
+    setFormError(null);
+    setIsSubmitting(true);
+
+    const result = await onUpdateProduct(editingProduct.id, validation.sanitized);
+    setIsSubmitting(false);
+
+    if (result?.ok === false) {
+      if (result.errors) setFieldErrors(result.errors);
+      setFormError(result.error || 'Failed to update creation.');
+      return;
+    }
+
+    setEditingProduct(null);
+    setEditForm(null);
+    showBanner(`Updated "${validation.sanitized.name}" and synced data/gallery-data.json.`);
+  };
+
+  const handleDeleteCurrentProduct = async () => {
+    if (!editingProduct || !onDeleteProduct) return;
+    setIsSubmitting(true);
+    const result = await onDeleteProduct(editingProduct.id);
+    setIsSubmitting(false);
+    if (result?.ok === false) {
+      setFormError(result.error || 'Failed to delete creation.');
+      return;
+    }
+    const deletedName = editingProduct.name;
+    setEditingProduct(null);
+    setEditForm(null);
+    setConfirmDeleteId(null);
+    showBanner(`Removed "${deletedName}" from gallery catalog.`);
+  };
+
+  const handleCreateProduct = async (e) => {
+    e.preventDefault();
+    const validation = validateProductInput(newForm, products);
+    if (!validation.isValid) {
+      setFieldErrors(validation.errors);
+      setFormError(Object.values(validation.errors)[0] || 'Please fix the highlighted product details before publishing.');
+      return;
+    }
+
+    setFieldErrors({});
+    setFormError(null);
+    setIsSubmitting(true);
+
+    const result = await onAddProduct(validation.sanitized);
+    setIsSubmitting(false);
+
+    if (result?.ok === false) {
+      if (result.errors) setFieldErrors(result.errors);
+      setFormError(result.error || 'Unable to save creation.');
+      return;
+    }
+
+    const savedName = validation.sanitized.name;
     setIsAddingProduct(false);
-    setNewProdName('');
-    setNewProdSubtitle('');
+    setNewForm(EMPTY_PRODUCT_FORM);
+    showBanner(`Published "${savedName}"! Photo saved in data/uploads/ & synced to products.js.`);
   };
 
   return (
@@ -302,9 +439,14 @@ export const AdminDashboard = ({
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="hidden sm:inline text-xs text-[#29231F]/60">Live Database Synced</span>
+            <span className="hidden sm:inline text-xs text-[#29231F]/60">Synced with data/gallery-data.json</span>
             <button
-              onClick={() => setIsAddingProduct(true)}
+              onClick={() => {
+                setFormError(null);
+                setFieldErrors({});
+                setNewForm(EMPTY_PRODUCT_FORM);
+                setIsAddingProduct(true);
+              }}
               className="flex items-center gap-1.5 px-3.5 py-2 bg-[#164B3B] text-[#F7F3EA] text-xs font-semibold rounded-lg hover:bg-[#20634f] transition-colors cursor-pointer shadow-xs"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -312,6 +454,13 @@ export const AdminDashboard = ({
             </button>
           </div>
         </div>
+
+        {statusBanner && (
+          <div className="mb-6 p-3.5 bg-emerald-50 border border-emerald-200 text-[#164B3B] rounded-xl text-xs font-medium flex items-center gap-2 shadow-xs">
+            <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+            <span>{statusBanner}</span>
+          </div>
+        )}
 
         {/* Tab 1: Overview */}
         {activeTab === 'overview' && (
@@ -486,13 +635,23 @@ export const AdminDashboard = ({
                     <div key={product.id} className="p-4 rounded-xl border border-[#E8DFD0] bg-[#F7F3EA]/30 flex flex-col justify-between">
                       <div>
                         <div className="flex gap-3 items-center mb-3">
-                          <div className="w-14 h-14 rounded-lg overflow-hidden bg-white shrink-0 border border-[#E8DFD0]">
-                            <ResinArtImage type={product.resinArtworkType} alt={product.name} />
+                          <div className="w-16 h-16 rounded-lg overflow-hidden bg-white shrink-0 border border-[#E8DFD0]">
+                            <ResinArtImage type={product.resinArtworkType} imageUrl={product.imageUrl} alt={product.name} />
                           </div>
-                          <div className="overflow-hidden">
-                            <span className="text-[10px] text-[#C6A15B] uppercase font-semibold">{product.category}</span>
+                          <div className="overflow-hidden min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] text-[#C6A15B] uppercase font-semibold">{product.category}</span>
+                              {product.isBestSeller && (
+                                <span className="text-[9px] px-1.5 py-0.5 bg-[#164B3B]/10 text-[#164B3B] rounded font-semibold">
+                                  Best Seller
+                                </span>
+                              )}
+                            </div>
                             <h4 className="font-serif text-sm font-medium text-[#29231F] truncate">{product.name}</h4>
                             <p className="text-xs font-semibold text-[#164B3B] tabular-nums mt-0.5">{formatINR(product.price)}</p>
+                            {product.imageUrl && (
+                              <p className="text-[10px] text-[#29231F]/50 font-mono truncate mt-0.5">{product.imageUrl}</p>
+                            )}
                           </div>
                         </div>
 
@@ -506,11 +665,11 @@ export const AdminDashboard = ({
 
                       <div className="pt-3 border-t border-[#E8DFD0]/60 flex gap-2">
                         <button
-                          onClick={() => setEditingProduct(product)}
+                          onClick={() => openEditModal(product)}
                           className="flex-1 py-1.5 bg-[#164B3B] text-[#F7F3EA] text-xs font-semibold rounded-lg hover:bg-[#20634f] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
-                          <span>Edit Stock &amp; Price</span>
+                          <span>Edit Details &amp; Photo</span>
                         </button>
                       </div>
                     </div>
@@ -585,7 +744,7 @@ export const AdminDashboard = ({
                     </div>
 
                     <button
-                      onClick={() => setEditingProduct(p)}
+                      onClick={() => openEditModal(p)}
                       className="px-3 py-1.5 bg-[#164B3B] text-white text-xs font-semibold rounded-lg hover:bg-[#20634f] cursor-pointer"
                     >
                       Restock Units
@@ -598,45 +757,256 @@ export const AdminDashboard = ({
         )}
 
         {/* Edit Product Modal */}
-        {editingProduct && (
-          <div className="fixed inset-0 z-50 bg-[#29231F]/70 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-md border border-[#E8DFD0] shadow-xl">
-              <h3 className="font-serif text-lg font-semibold text-[#164B3B] mb-4">
-                Update {editingProduct.name}
-              </h3>
-              <form onSubmit={handleSaveEdit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-[#29231F]/70 mb-1">Price (₹ INR)</label>
-                  <input
-                    type="number"
-                    value={editingProduct.price}
-                    onChange={(e) => setEditingProduct({ ...editingProduct, price: Number(e.target.value) })}
-                    className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
-                  />
+        {editingProduct && editForm && (
+          <div className="fixed inset-0 z-50 bg-[#29231F]/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl p-5 sm:p-6 w-full max-w-xl border border-[#E8DFD0] shadow-xl my-4 max-h-[92vh] overflow-y-auto">
+              <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-[#E8DFD0]">
+                <h3 className="font-serif text-lg font-semibold text-[#164B3B]">
+                  Edit Creation · {editingProduct.name}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingProduct(null);
+                    setEditForm(null);
+                    setConfirmDeleteId(null);
+                  }}
+                  className="text-xs text-[#29231F]/60 hover:text-[#29231F] cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+
+              {formError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs">
+                  {formError}
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-[#29231F]/70 mb-1">Studio Stock (Units)</label>
-                  <input
-                    type="number"
-                    value={editingProduct.stock}
-                    onChange={(e) => setEditingProduct({ ...editingProduct, stock: Number(e.target.value), inStock: Number(e.target.value) > 0 })}
-                    className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
-                  />
+              )}
+
+              <form onSubmit={handleSaveEdit} noValidate className="space-y-4">
+                {/* Product Photo Upload / Replace */}
+                <div className="p-3.5 bg-[#F7F3EA] rounded-xl border border-[#E8DFD0] flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="w-20 h-20 rounded-lg overflow-hidden bg-white border border-[#E8DFD0] shrink-0">
+                    <ResinArtImage
+                      type={editingProduct.resinArtworkType}
+                      imageUrl={editForm.photoDataUrl || editForm.imageUrl}
+                      alt={editForm.name}
+                      showShimmer={false}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <label className="block text-xs font-semibold text-[#164B3B]">
+                      Product Photo (saved in data/uploads/)
+                    </label>
+                    <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#C6A15B] text-[#164B3B] rounded-lg text-xs font-semibold hover:bg-[#E8DFD0]/40 cursor-pointer">
+                      <Upload className="w-3.5 h-3.5 text-[#C6A15B]" />
+                      <span>{editForm.photoFileName ? 'Change Selected Photo' : 'Upload / Replace Photo'}</span>
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/gif"
+                        onChange={(e) => handlePhotoFileChange(e, setEditForm)}
+                        className="sr-only"
+                      />
+                    </label>
+                    <p className="text-[11px] text-[#29231F]/60 truncate">
+                      {editForm.photoFileName
+                        ? `Selected: ${editForm.photoFileName}`
+                        : editForm.imageUrl
+                        ? `Current path: ${editForm.imageUrl}`
+                        : 'Using handcrafted vector artwork until photo uploaded'}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex gap-2 pt-2">
-                  <button
-                    type="submit"
-                    className="flex-1 py-2 bg-[#164B3B] text-white text-xs font-semibold rounded-lg hover:bg-[#20634f] cursor-pointer"
-                  >
-                    Save Changes
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditingProduct(null)}
-                    className="px-4 py-2 bg-[#E8DFD0] text-[#29231F] text-xs font-semibold rounded-lg cursor-pointer"
-                  >
-                    Cancel
-                  </button>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="edit-product-name" className="block text-xs font-medium text-[#29231F]/70 mb-1">Creation Name *</label>
+                    <input
+                      id="edit-product-name"
+                      type="text"
+                      value={editForm.name}
+                      onChange={(e) => updateEditField('name', e.target.value)}
+                      className={`w-full px-3 py-2 bg-[#F7F3EA] border rounded-lg text-xs ${fieldErrors.name ? 'border-red-500' : 'border-[#E8DFD0]'}`}
+                    />
+                    {fieldErrors.name && <p className="text-[11px] text-red-600 mt-1">{fieldErrors.name}</p>}
+                  </div>
+                  <div>
+                    <label htmlFor="edit-product-subtitle" className="block text-xs font-medium text-[#29231F]/70 mb-1">Subtitle</label>
+                    <input
+                      id="edit-product-subtitle"
+                      type="text"
+                      value={editForm.subtitle}
+                      onChange={(e) => updateEditField('subtitle', e.target.value)}
+                      className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="edit-product-category" className="block text-xs font-medium text-[#29231F]/70 mb-1">Category</label>
+                    <select
+                      id="edit-product-category"
+                      value={editForm.category}
+                      onChange={(e) => updateEditField('category', e.target.value)}
+                      className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
+                    >
+                      <option>Earrings</option>
+                      <option>Floral Jewellery</option>
+                      <option>Personalised Keepsakes</option>
+                      <option>Artistic Decor</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="edit-product-collection" className="block text-xs font-medium text-[#29231F]/70 mb-1">Collection Series</label>
+                    <select
+                      id="edit-product-collection"
+                      value={editForm.collection}
+                      onChange={(e) => updateEditField('collection', e.target.value)}
+                      className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
+                    >
+                      <option>Floral Elegance</option>
+                      <option>Emerald Collection</option>
+                      <option>Golden Details</option>
+                      <option>Personalised Keepsakes</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="edit-product-price" className="block text-xs font-medium text-[#29231F]/70 mb-1">Price (₹ INR) *</label>
+                    <input
+                      id="edit-product-price"
+                      type="number"
+                      value={editForm.price}
+                      onChange={(e) => updateEditField('price', e.target.value)}
+                      className={`w-full px-3 py-2 bg-[#F7F3EA] border rounded-lg text-xs ${fieldErrors.price ? 'border-red-500' : 'border-[#E8DFD0]'}`}
+                    />
+                    {fieldErrors.price && <p className="text-[11px] text-red-600 mt-1">{fieldErrors.price}</p>}
+                  </div>
+                  <div>
+                    <label htmlFor="edit-product-original-price" className="block text-xs font-medium text-[#29231F]/70 mb-1">Original Price (₹, optional)</label>
+                    <input
+                      id="edit-product-original-price"
+                      type="number"
+                      value={editForm.originalPrice}
+                      onChange={(e) => updateEditField('originalPrice', e.target.value)}
+                      placeholder="Optional compare-at price"
+                      className={`w-full px-3 py-2 bg-[#F7F3EA] border rounded-lg text-xs ${fieldErrors.originalPrice ? 'border-red-500' : 'border-[#E8DFD0]'}`}
+                    />
+                    {fieldErrors.originalPrice && <p className="text-[11px] text-red-600 mt-1">{fieldErrors.originalPrice}</p>}
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label htmlFor="edit-product-stock" className="block text-xs font-medium text-[#29231F]/70 mb-1">Studio Stock (Units) *</label>
+                    <input
+                      id="edit-product-stock"
+                      type="number"
+                      value={editForm.stock}
+                      onChange={(e) => updateEditField('stock', e.target.value)}
+                      className={`w-full px-3 py-2 bg-[#F7F3EA] border rounded-lg text-xs ${fieldErrors.stock ? 'border-red-500' : 'border-[#E8DFD0]'}`}
+                    />
+                    {fieldErrors.stock && <p className="text-[11px] text-red-600 mt-1">{fieldErrors.stock}</p>}
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="edit-product-description" className="block text-xs font-medium text-[#29231F]/70 mb-1">Story &amp; Description *</label>
+                  <textarea
+                    id="edit-product-description"
+                    rows={2}
+                    value={editForm.description}
+                    onChange={(e) => updateEditField('description', e.target.value)}
+                    className={`w-full px-3 py-2 bg-[#F7F3EA] border rounded-lg text-xs ${fieldErrors.description ? 'border-red-500' : 'border-[#E8DFD0]'}`}
+                  />
+                  {fieldErrors.description && <p className="text-[11px] text-red-600 mt-1">{fieldErrors.description}</p>}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-xs">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editForm.isBestSeller}
+                      onChange={(e) => setEditForm({ ...editForm, isBestSeller: e.target.checked })}
+                      className="accent-[#164B3B]"
+                    />
+                    <span>Show in Best Sellers</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editForm.isNewArrival}
+                      onChange={(e) => setEditForm({ ...editForm, isNewArrival: e.target.checked })}
+                      className="accent-[#164B3B]"
+                    />
+                    <span>Mark as New Arrival</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editForm.useAsCollectionCover}
+                      onChange={(e) => setEditForm({ ...editForm, useAsCollectionCover: e.target.checked })}
+                      className="accent-[#164B3B]"
+                    />
+                    <span>Set photo as Collection Cover</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editForm.featureInStory}
+                      onChange={(e) => setEditForm({ ...editForm, featureInStory: e.target.checked })}
+                      className="accent-[#164B3B]"
+                    />
+                    <span>Feature in Brand Story</span>
+                  </label>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-[#E8DFD0]">
+                  {onDeleteProduct && (
+                    confirmDeleteId === editingProduct.id ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={isSubmitting}
+                          onClick={handleDeleteCurrentProduct}
+                          className="px-3 py-2 bg-red-700 text-white text-xs font-semibold rounded-lg hover:bg-red-800 cursor-pointer"
+                        >
+                          Confirm Delete
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="px-2.5 py-2 bg-[#E8DFD0] text-[#29231F] text-xs rounded-lg cursor-pointer"
+                        >
+                          Keep
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteId(editingProduct.id)}
+                        className="px-3 py-2 text-red-700 hover:bg-red-50 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete</span>
+                      </button>
+                    )
+                  )}
+
+                  <div className="flex items-center gap-2 ml-auto">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingProduct(null);
+                        setEditForm(null);
+                        setConfirmDeleteId(null);
+                      }}
+                      className="px-4 py-2 bg-[#E8DFD0] text-[#29231F] text-xs font-semibold rounded-lg cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="px-5 py-2 bg-[#164B3B] text-white text-xs font-semibold rounded-lg hover:bg-[#20634f] cursor-pointer disabled:opacity-50"
+                    >
+                      {isSubmitting ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>
@@ -645,80 +1015,245 @@ export const AdminDashboard = ({
 
         {/* Add Product Modal */}
         {isAddingProduct && (
-          <div className="fixed inset-0 z-50 bg-[#29231F]/70 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-md border border-[#E8DFD0] shadow-xl">
-              <h3 className="font-serif text-lg font-semibold text-[#164B3B] mb-4">
-                Add New Resin Creation to Gallery
-              </h3>
-              <form onSubmit={handleCreateProduct} className="space-y-4">
+          <div className="fixed inset-0 z-50 bg-[#29231F]/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl p-5 sm:p-6 w-full max-w-xl border border-[#E8DFD0] shadow-xl my-4 max-h-[92vh] overflow-y-auto">
+              <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-[#E8DFD0]">
                 <div>
-                  <label className="block text-xs font-medium text-[#29231F]/70 mb-1">Creation Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={newProdName}
-                    onChange={(e) => setNewProdName(e.target.value)}
-                    placeholder="e.g. Celestial Golden Fern Pendant"
-                    className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
-                  />
+                  <h3 className="font-serif text-lg font-semibold text-[#164B3B]">
+                    Add New Resin Creation to Gallery
+                  </h3>
+                  <p className="text-[11px] text-[#29231F]/60">
+                    Saves photo to data/uploads/ and updates gallery-data.json &amp; products.js
+                  </p>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-[#29231F]/70 mb-1">Subtitle</label>
-                  <input
-                    type="text"
-                    value={newProdSubtitle}
-                    onChange={(e) => setNewProdSubtitle(e.target.value)}
-                    placeholder="Preserved gold fern frond in crystal dome"
-                    className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
-                  />
+                <button
+                  type="button"
+                  onClick={() => setIsAddingProduct(false)}
+                  className="text-xs text-[#29231F]/60 hover:text-[#29231F] cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+
+              {formError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs">
+                  {formError}
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-[#29231F]/70 mb-1">Category</label>
-                  <select
-                    value={newProdCategory}
-                    onChange={(e) => setNewProdCategory(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
-                  >
-                    <option>Earrings</option>
-                    <option>Floral Jewellery</option>
-                    <option>Necklaces &amp; Pendants</option>
-                    <option>Personalised Keepsakes</option>
-                    <option>Artistic Decor</option>
-                  </select>
+              )}
+
+              <form onSubmit={handleCreateProduct} noValidate className="space-y-4">
+                {/* Product Photo Upload Zone */}
+                <div className="p-3.5 bg-[#F7F3EA] rounded-xl border border-dashed border-[#C6A15B] flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="w-20 h-20 rounded-lg overflow-hidden bg-white border border-[#E8DFD0] shrink-0 flex items-center justify-center">
+                    {newForm.photoDataUrl ? (
+                      <img
+                        src={newForm.photoDataUrl}
+                        alt="Uploaded product preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <ImageIcon className="w-7 h-7 text-[#C6A15B]/70" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <label className="block text-xs font-semibold text-[#164B3B]">
+                      Product Photo (PNG / JPG / WEBP)
+                    </label>
+                    <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#164B3B] text-[#F7F3EA] rounded-lg text-xs font-semibold hover:bg-[#20634f] cursor-pointer">
+                      <Upload className="w-3.5 h-3.5 text-[#C6A15B]" />
+                      <span>{newForm.photoFileName ? 'Change Photo' : 'Choose Product Photo'}</span>
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/gif"
+                        onChange={(e) => handlePhotoFileChange(e, setNewForm)}
+                        className="sr-only"
+                      />
+                    </label>
+                    <p className="text-[11px] text-[#29231F]/60 truncate">
+                      {newForm.photoFileName
+                        ? `Ready to save: ${newForm.photoFileName}`
+                        : 'Photo will be saved inside data/uploads/ and shown across customer pages.'}
+                    </p>
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-[#29231F]/70 mb-1">Price (₹)</label>
+                    <label htmlFor="new-product-name" className="block text-xs font-medium text-[#29231F]/70 mb-1">Creation Name *</label>
                     <input
-                      type="number"
-                      required
-                      value={newProdPrice}
-                      onChange={(e) => setNewProdPrice(Number(e.target.value))}
+                      id="new-product-name"
+                      type="text"
+                      value={newForm.name}
+                      onChange={(e) => updateNewField('name', e.target.value)}
+                      placeholder="e.g. Celestial Golden Fern Pendant"
+                      className={`w-full px-3 py-2 bg-[#F7F3EA] border rounded-lg text-xs ${fieldErrors.name ? 'border-red-500' : 'border-[#E8DFD0]'}`}
+                    />
+                    {fieldErrors.name && <p className="text-[11px] text-red-600 mt-1">{fieldErrors.name}</p>}
+                  </div>
+                  <div>
+                    <label htmlFor="new-product-subtitle" className="block text-xs font-medium text-[#29231F]/70 mb-1">Subtitle</label>
+                    <input
+                      id="new-product-subtitle"
+                      type="text"
+                      value={newForm.subtitle}
+                      onChange={(e) => updateNewField('subtitle', e.target.value)}
+                      placeholder="Preserved gold fern frond in crystal dome"
                       className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-[#29231F]/70 mb-1">Initial Stock</label>
+                    <label htmlFor="new-product-category" className="block text-xs font-medium text-[#29231F]/70 mb-1">Category *</label>
+                    <select
+                      id="new-product-category"
+                      value={newForm.category}
+                      onChange={(e) => updateNewField('category', e.target.value)}
+                      className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
+                    >
+                      <option>Earrings</option>
+                      <option>Floral Jewellery</option>
+                      <option>Personalised Keepsakes</option>
+                      <option>Artistic Decor</option>
+                    </select>
+                    {fieldErrors.category && <p className="text-[11px] text-red-600 mt-1">{fieldErrors.category}</p>}
+                  </div>
+                  <div>
+                    <label htmlFor="new-product-collection" className="block text-xs font-medium text-[#29231F]/70 mb-1">Collection Series *</label>
+                    <select
+                      id="new-product-collection"
+                      value={newForm.collection}
+                      onChange={(e) => updateNewField('collection', e.target.value)}
+                      className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
+                    >
+                      <option>Floral Elegance</option>
+                      <option>Emerald Collection</option>
+                      <option>Golden Details</option>
+                      <option>Personalised Keepsakes</option>
+                    </select>
+                    {fieldErrors.collection && <p className="text-[11px] text-red-600 mt-1">{fieldErrors.collection}</p>}
+                  </div>
+                  <div>
+                    <label htmlFor="new-product-price" className="block text-xs font-medium text-[#29231F]/70 mb-1">Price (₹) *</label>
                     <input
+                      id="new-product-price"
                       type="number"
-                      required
-                      value={newProdStock}
-                      onChange={(e) => setNewProdStock(Number(e.target.value))}
+                      value={newForm.price}
+                      onChange={(e) => updateNewField('price', e.target.value)}
+                      className={`w-full px-3 py-2 bg-[#F7F3EA] border rounded-lg text-xs ${fieldErrors.price ? 'border-red-500' : 'border-[#E8DFD0]'}`}
+                    />
+                    {fieldErrors.price && <p className="text-[11px] text-red-600 mt-1">{fieldErrors.price}</p>}
+                  </div>
+                  <div>
+                    <label htmlFor="new-product-original-price" className="block text-xs font-medium text-[#29231F]/70 mb-1">Original Price (₹, optional)</label>
+                    <input
+                      id="new-product-original-price"
+                      type="number"
+                      value={newForm.originalPrice}
+                      onChange={(e) => updateNewField('originalPrice', e.target.value)}
+                      placeholder="Compare-at price > selling price"
+                      className={`w-full px-3 py-2 bg-[#F7F3EA] border rounded-lg text-xs ${fieldErrors.originalPrice ? 'border-red-500' : 'border-[#E8DFD0]'}`}
+                    />
+                    {fieldErrors.originalPrice && <p className="text-[11px] text-red-600 mt-1">{fieldErrors.originalPrice}</p>}
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label htmlFor="new-product-stock" className="block text-xs font-medium text-[#29231F]/70 mb-1">Initial Stock *</label>
+                    <input
+                      id="new-product-stock"
+                      type="number"
+                      value={newForm.stock}
+                      onChange={(e) => updateNewField('stock', e.target.value)}
+                      className={`w-full px-3 py-2 bg-[#F7F3EA] border rounded-lg text-xs ${fieldErrors.stock ? 'border-red-500' : 'border-[#E8DFD0]'}`}
+                    />
+                    {fieldErrors.stock && <p className="text-[11px] text-red-600 mt-1">{fieldErrors.stock}</p>}
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="new-product-description" className="block text-xs font-medium text-[#29231F]/70 mb-1">Story &amp; Description *</label>
+                  <textarea
+                    id="new-product-description"
+                    rows={2}
+                    value={newForm.description}
+                    onChange={(e) => updateNewField('description', e.target.value)}
+                    placeholder="Describe the botanicals, pigments, and studio craft (min 10 characters)..."
+                    className={`w-full px-3 py-2 bg-[#F7F3EA] border rounded-lg text-xs ${fieldErrors.description ? 'border-red-500' : 'border-[#E8DFD0]'}`}
+                  />
+                  {fieldErrors.description && <p className="text-[11px] text-red-600 mt-1">{fieldErrors.description}</p>}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="new-product-materials" className="block text-xs font-medium text-[#29231F]/70 mb-1">Materials</label>
+                    <input
+                      id="new-product-materials"
+                      type="text"
+                      value={newForm.materials}
+                      onChange={(e) => updateNewField('materials', e.target.value)}
+                      className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="new-product-inclusions" className="block text-xs font-medium text-[#29231F]/70 mb-1">Inclusions</label>
+                    <input
+                      id="new-product-inclusions"
+                      type="text"
+                      value={newForm.inclusions}
+                      onChange={(e) => updateNewField('inclusions', e.target.value)}
                       className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
                     />
                   </div>
                 </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-xs">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newForm.isBestSeller}
+                      onChange={(e) => setNewForm({ ...newForm, isBestSeller: e.target.checked })}
+                      className="accent-[#164B3B]"
+                    />
+                    <span>Feature in Best Sellers</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newForm.isNewArrival}
+                      onChange={(e) => setNewForm({ ...newForm, isNewArrival: e.target.checked })}
+                      className="accent-[#164B3B]"
+                    />
+                    <span>Mark as New Arrival</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newForm.useAsCollectionCover}
+                      onChange={(e) => setNewForm({ ...newForm, useAsCollectionCover: e.target.checked })}
+                      className="accent-[#164B3B]"
+                    />
+                    <span>Use photo as Collection Cover</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newForm.featureInStory}
+                      onChange={(e) => setNewForm({ ...newForm, featureInStory: e.target.checked })}
+                      className="accent-[#164B3B]"
+                    />
+                    <span>Feature in Brand Story</span>
+                  </label>
+                </div>
+
                 <div className="flex gap-2 pt-2">
                   <button
                     type="submit"
-                    className="flex-1 py-2 bg-[#164B3B] text-white text-xs font-semibold rounded-lg hover:bg-[#20634f] cursor-pointer"
+                    disabled={isSubmitting}
+                    className="flex-1 py-2.5 bg-[#164B3B] text-white text-xs font-semibold rounded-lg hover:bg-[#20634f] cursor-pointer disabled:opacity-50"
                   >
-                    Publish to Store
+                    {isSubmitting ? 'Uploading & Saving...' : 'Publish to Store'}
                   </button>
                   <button
                     type="button"
                     onClick={() => setIsAddingProduct(false)}
-                    className="px-4 py-2 bg-[#E8DFD0] text-[#29231F] text-xs font-semibold rounded-lg cursor-pointer"
+                    className="px-4 py-2.5 bg-[#E8DFD0] text-[#29231F] text-xs font-semibold rounded-lg cursor-pointer"
                   >
                     Cancel
                   </button>

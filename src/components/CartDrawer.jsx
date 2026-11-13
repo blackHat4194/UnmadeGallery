@@ -117,6 +117,7 @@ export const CartDrawer = ({
                 <div className="w-20 h-20 rounded-lg overflow-hidden bg-[#F7F3EA] shrink-0 border border-[#E8DFD0]">
                   <ResinArtImage
                     type={item.product.resinArtworkType}
+                    imageUrl={item.product.imageUrl}
                     alt={item.product.name}
                   />
                 </div>

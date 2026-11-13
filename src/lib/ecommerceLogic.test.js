@@ -5,7 +5,19 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateOrderSummary, estimateCustomOrderPrice, formatINR, sortProducts } from './ecommerceLogic.js';
+import {
+  calculateOrderSummary,
+  estimateCustomOrderPrice,
+  formatINR,
+  sortProducts,
+  sanitizeImageFilename,
+  buildProductRecord,
+  resolveFeaturedCollections,
+  resolveStoryShowcase,
+  cleanupShowcaseOnDelete,
+  isUploadPathReferenced,
+  validateProductInput
+} from './ecommerceLogic.js';
 
 const mockProduct = {
   id: 'test-1',
@@ -111,3 +123,154 @@ test('formatINR formats currency strings with Indian formatting', () => {
   const formatted = formatINR(2450);
   assert.ok(formatted.includes('2,450') || formatted.includes('₹'));
 });
+
+test('sanitizeImageFilename builds clean kebab-case file names', () => {
+  const fname = sanitizeImageFilename('Celestial Golden Fern Pendant!', 'PNG', 12345);
+  assert.equal(fname, 'celestial-golden-fern-pendant-12345.png');
+});
+
+test('buildProductRecord preserves imageUrl, stock flags, and collection artwork fallback', () => {
+  const built = buildProductRecord({
+    name: 'Emerald Fern Hoops',
+    collection: 'Emerald Collection',
+    category: 'Earrings',
+    price: 3400,
+    stock: 3,
+    isBestSeller: true,
+    imageUrl: '/data/uploads/emerald-fern-123.png'
+  });
+  assert.equal(built.imageUrl, '/data/uploads/emerald-fern-123.png');
+  assert.equal(built.resinArtworkType, 'emerald-gold');
+  assert.equal(built.isBestSeller, true);
+  assert.equal(built.inStock, true);
+});
+
+test('resolveFeaturedCollections binds uploaded product image to matching collection when cover unset', () => {
+  const collections = [
+    { id: 'Floral Elegance', name: 'Floral Elegance', subtitle: 'Sub', imageType: 'floral-crystal' },
+    { id: 'Emerald Collection', name: 'Emerald Collection', subtitle: 'Sub', imageType: 'emerald-gold' }
+  ];
+  const products = [
+    { ...mockProduct, collection: 'Emerald Collection', imageUrl: '/data/uploads/emerald-1.jpg' }
+  ];
+  const resolved = resolveFeaturedCollections(collections, products);
+  assert.equal(resolved[0].imageUrl, undefined);
+  assert.equal(resolved[1].imageUrl, '/data/uploads/emerald-1.jpg');
+});
+
+test('resolveStoryShowcase picks hero product and uploaded story images', () => {
+  const products = [
+    { ...mockProduct, id: 'p-1', imageUrl: '/data/uploads/one.png' },
+    { ...mockProduct, id: 'p-2', imageUrl: '/data/uploads/two.png' }
+  ];
+  const resolved = resolveStoryShowcase({ heroProductId: 'p-2' }, products);
+  assert.equal(resolved.heroProduct.id, 'p-2');
+  assert.equal(resolved.primaryStory.imageUrl, '/data/uploads/one.png');
+  assert.equal(resolved.secondaryStory.imageUrl, '/data/uploads/two.png');
+});
+
+test('cleanupShowcaseOnDelete clears deleted photo from collections and storyShowcase', () => {
+  const deleted = {
+    ...mockProduct,
+    id: 'custom-99',
+    collection: 'Floral Elegance',
+    imageUrl: '/data/uploads/monsoon-fern.png'
+  };
+  const state = {
+    products: [
+      { ...mockProduct, id: 'unmade-001', collection: 'Floral Elegance' },
+      deleted
+    ],
+    collections: [
+      {
+        id: 'Floral Elegance',
+        name: 'Floral Elegance',
+        subtitle: 'Sub',
+        imageType: 'floral-crystal',
+        imageUrl: '/data/uploads/monsoon-fern.png'
+      }
+    ],
+    storyShowcase: {
+      heroProductId: 'custom-99',
+      primaryStoryType: 'botanical-teardrop',
+      primaryStoryImageUrl: '/data/uploads/monsoon-fern.png',
+      primaryStoryTitle: 'Monsoon Fern',
+      primaryStorySubtitle: 'Floral Elegance',
+      secondaryStoryType: 'keepsake-pyramid',
+      secondaryStoryTitle: '24K Gold Flakes',
+      secondaryStorySubtitle: 'Suspended in glass depth'
+    }
+  };
+
+  const cleaned = cleanupShowcaseOnDelete(state, deleted);
+  assert.equal(cleaned.products.length, 1);
+  assert.equal(cleaned.collections[0].imageUrl, undefined);
+  assert.equal(cleaned.storyShowcase.heroProductId, 'unmade-001');
+  assert.equal(cleaned.storyShowcase.primaryStoryImageUrl, undefined);
+  assert.equal(cleaned.storyShowcase.primaryStoryTitle, 'Real Wild Botanicals');
+  assert.equal(isUploadPathReferenced(cleaned, '/data/uploads/monsoon-fern.png'), false);
+});
+
+test('validateProductInput rejects invalid price, negative/decimal stock, short name/description, and duplicate names', () => {
+  const result = validateProductInput(
+    {
+      name: 'Ab',
+      category: 'Floral Jewellery',
+      collection: 'Floral Elegance',
+      price: 0,
+      originalPrice: 1500,
+      stock: -2.5,
+      description: 'Short'
+    },
+    [mockProduct]
+  );
+
+  assert.equal(result.isValid, false);
+  assert.ok(result.errors.name);
+  assert.ok(result.errors.price);
+  assert.ok(result.errors.stock);
+  assert.ok(result.errors.description);
+
+  const dupResult = validateProductInput(
+    {
+      name: '  test resin ring ',
+      category: 'Floral Jewellery',
+      collection: 'Floral Elegance',
+      price: 2000,
+      originalPrice: 1800,
+      stock: 4,
+      description: 'A handcrafted resin ring preserving wildflowers.'
+    },
+    [mockProduct]
+  );
+
+  assert.equal(dupResult.isValid, false);
+  assert.ok(dupResult.errors.name.includes('already exists'));
+  assert.ok(dupResult.errors.originalPrice.includes('greater than'));
+});
+
+test('validateProductInput accepts valid product details and returns sanitized values', () => {
+  const result = validateProductInput(
+    {
+      name: '  Saffron Orchid Pendant  ',
+      subtitle: '  Pressed orchid in clear dome ',
+      category: 'Floral Jewellery',
+      collection: 'Floral Elegance',
+      price: '2850',
+      originalPrice: '3200',
+      stock: '6',
+      description: '  Hand-poured optical resin pendant preserving a delicate saffron orchid petal.  '
+    },
+    [mockProduct]
+  );
+
+  assert.equal(result.isValid, true);
+  assert.deepEqual(result.errors, {});
+  assert.equal(result.sanitized.name, 'Saffron Orchid Pendant');
+  assert.equal(result.sanitized.price, 2850);
+  assert.equal(result.sanitized.originalPrice, 3200);
+  assert.equal(result.sanitized.stock, 6);
+});
+
+
+

@@ -19,6 +19,15 @@ import { SearchModal } from './components/SearchModal.jsx';
 import { OrderConfirmationModal } from './components/OrderConfirmationModal.jsx';
 
 import {
+  CUSTOMER_REVIEWS,
+  FEATURED_COLLECTIONS,
+  STORY_SHOWCASE
+} from './data/products.js';
+import {
+  buildProductRecord,
+  validateProductInput
+} from './lib/ecommerceLogic.js';
+import {
   getStoredProducts,
   saveStoredProducts,
   getStoredCart,
@@ -35,6 +44,9 @@ import {
 export default function App() {
   // Application Data States
   const [products, setProducts] = useState(() => getStoredProducts());
+  const [collections, setCollections] = useState(FEATURED_COLLECTIONS);
+  const [storyShowcase, setStoryShowcase] = useState(STORY_SHOWCASE);
+  const [reviews, setReviews] = useState(CUSTOMER_REVIEWS);
   const [cart, setCart] = useState(() => getStoredCart());
   const [wishlist, setWishlist] = useState(() => getStoredWishlist());
   const [orders, setOrders] = useState(() => getStoredOrders());
@@ -51,8 +63,36 @@ export default function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [confirmedOrder, setConfirmedOrder] = useState(null);
 
-  // Sync state to URL params on mount if present
+  // Hydrate catalog, collections, story showcase, and reviews from data/gallery-data.json via API
   useEffect(() => {
+    let cancelled = false;
+
+    const loadGalleryData = async () => {
+      try {
+        const res = await fetch('/api/gallery-data');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+
+        if (Array.isArray(data.products)) {
+          setProducts(data.products);
+          saveStoredProducts(data.products);
+          if (typeof window !== 'undefined') {
+            const pid = new URLSearchParams(window.location.search).get('productId');
+            if (pid) {
+              const found = data.products.find((p) => p.id === pid);
+              if (found) setSelectedProduct(found);
+            }
+          }
+        }
+        if (Array.isArray(data.collections)) setCollections(data.collections);
+        if (data.storyShowcase) setStoryShowcase(data.storyShowcase);
+        if (Array.isArray(data.reviews)) setReviews(data.reviews);
+      } catch {
+        // Fallback smoothly to local bundled products.js data if API unavailable
+      }
+    };
+
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const pageParam = urlParams.get('page');
@@ -65,6 +105,11 @@ export default function App() {
         if (found) setSelectedProduct(found);
       }
     }
+
+    loadGalleryData();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Sync cart to storage
@@ -149,17 +194,97 @@ export default function App() {
     setConfirmedOrder(newOrder);
   };
 
-  // Admin handlers
-  const handleUpdateProduct = (updated) => {
-    const next = products.map((p) => (p.id === updated.id ? updated : p));
-    setProducts(next);
-    saveStoredProducts(next);
+  // Helper to apply galleryData payload from server
+  const applyGalleryPayload = (galleryData) => {
+    if (Array.isArray(galleryData?.products)) {
+      setProducts(galleryData.products);
+      saveStoredProducts(galleryData.products);
+    }
+    if (Array.isArray(galleryData?.collections)) {
+      setCollections(galleryData.collections);
+    }
+    if (galleryData?.storyShowcase) {
+      setStoryShowcase(galleryData.storyShowcase);
+    }
+    if (Array.isArray(galleryData?.reviews)) {
+      setReviews(galleryData.reviews);
+    }
   };
 
-  const handleAddProduct = (newProd) => {
-    const next = [newProd, ...products];
-    setProducts(next);
-    saveStoredProducts(next);
+  // Admin handlers: validate input before updating local product state and syncing to data/gallery-data.json
+  const handleUpdateProduct = async (productId, payload) => {
+    const validation = validateProductInput(payload, products, productId);
+    if (!validation.isValid) {
+      const firstError = Object.values(validation.errors)[0] || 'Please fix the highlighted product details.';
+      return { ok: false, error: firstError, errors: validation.errors };
+    }
+
+    try {
+      const res = await fetch(`/api/products/${encodeURIComponent(productId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(validation.sanitized)
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        return { ok: false, error: json.error || 'Failed to update product.' };
+      }
+      applyGalleryPayload(json.galleryData);
+      return { ok: true, product: json.product };
+    } catch {
+      // Fallback: update local product data state cleanly if API is unreachable
+      const existing = products.find((p) => p.id === productId);
+      const updated = buildProductRecord(validation.sanitized, existing);
+      const nextProducts = products.map((p) => (p.id === productId ? updated : p));
+      setProducts(nextProducts);
+      saveStoredProducts(nextProducts);
+      return { ok: true, product: updated };
+    }
+  };
+
+  const handleAddProduct = async (payload) => {
+    const validation = validateProductInput(payload, products);
+    if (!validation.isValid) {
+      const firstError = Object.values(validation.errors)[0] || 'Please fix the highlighted product details.';
+      return { ok: false, error: firstError, errors: validation.errors };
+    }
+
+    try {
+      const res = await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(validation.sanitized)
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        return { ok: false, error: json.error || 'Failed to publish product.' };
+      }
+      applyGalleryPayload(json.galleryData);
+      return { ok: true, product: json.product };
+    } catch {
+      // Fallback: validate and update local product data state cleanly if API is unreachable
+      const created = buildProductRecord(validation.sanitized);
+      const nextProducts = [created, ...products];
+      setProducts(nextProducts);
+      saveStoredProducts(nextProducts);
+      return { ok: true, product: created };
+    }
+  };
+
+  const handleDeleteProduct = async (productId) => {
+    try {
+      const res = await fetch(`/api/products/${encodeURIComponent(productId)}`, {
+        method: 'DELETE'
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        return { ok: false, error: json.error || 'Failed to delete product.' };
+      }
+      applyGalleryPayload(json.galleryData);
+      return { ok: true };
+    } catch {
+      return { ok: false, error: 'Network error while deleting product.' };
+    }
   };
 
   const handleUpdateOrderStatus = (orderId, status) => {
@@ -185,6 +310,7 @@ export default function App() {
           customRequests={customRequests}
           onUpdateProduct={handleUpdateProduct}
           onAddProduct={handleAddProduct}
+          onDeleteProduct={handleDeleteProduct}
           onUpdateOrderStatus={handleUpdateOrderStatus}
           onUpdateCustomStatus={handleUpdateCustomStatus}
           onExitAdmin={() => handleNavigate('home')}
@@ -206,6 +332,9 @@ export default function App() {
             {activePage === 'home' && (
               <HomeView
                 products={products}
+                collections={collections}
+                storyShowcase={storyShowcase}
+                reviews={reviews}
                 wishlistIds={wishlist}
                 onToggleWishlist={handleToggleWishlist}
                 onAddToCart={(p) => handleAddToCart(p, 1)}

@@ -69,6 +69,7 @@ export const ProductDetailModal = ({
               <div className="relative aspect-4/3 sm:aspect-square w-full rounded-xl overflow-hidden bg-white border border-[#E8DFD0] shadow-sm">
                 <ResinArtImage
                   type={product.resinArtworkType}
+                  imageUrl={product.imageUrl}
                   alt={product.name}
                   className="w-full h-full"
                 />
@@ -326,7 +327,7 @@ export const ProductDetailModal = ({
                     className="p-3 bg-white rounded-lg border border-[#E8DFD0] hover:border-[#C6A15B] transition-all cursor-pointer flex items-center gap-3 group"
                   >
                     <div className="w-16 h-16 rounded-md overflow-hidden bg-[#F7F3EA] shrink-0 border border-[#E8DFD0]">
-                      <ResinArtImage type={rel.resinArtworkType} alt={rel.name} />
+                      <ResinArtImage type={rel.resinArtworkType} imageUrl={rel.imageUrl} alt={rel.name} />
                     </div>
                     <div className="overflow-hidden">
                       <p className="text-[10px] text-[#C6A15B] uppercase font-semibold">{rel.category}</p>

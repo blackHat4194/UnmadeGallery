@@ -33,6 +33,7 @@ export const ProductCard = ({
       <div className="relative aspect-square w-full overflow-hidden bg-[#F7F3EA] border-b border-[#E8DFD0]/60">
         <ResinArtImage
           type={product.resinArtworkType}
+          imageUrl={product.imageUrl}
           alt={product.name}
           className="transition-transform duration-500 group-hover:scale-105"
         />

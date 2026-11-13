@@ -120,7 +120,7 @@ export const SearchModal = ({
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-14 h-14 rounded-lg overflow-hidden bg-[#F7F3EA] shrink-0 border border-[#E8DFD0]">
-                      <ResinArtImage type={p.resinArtworkType} alt={p.name} />
+                      <ResinArtImage type={p.resinArtworkType} imageUrl={p.imageUrl} alt={p.name} />
                     </div>
                     <div>
                       <p className="text-[10px] text-[#C6A15B] uppercase font-semibold">{p.category}</p>

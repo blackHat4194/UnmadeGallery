@@ -25,7 +25,8 @@ npm install
 npm run dev
 ```
 
-- Ye command `vite --port=3000 --host=0.0.0.0` start karegi.
+- Ye command `node server.js` start karegi (Express API + Vite middleware on port `3000`).
+- Admin panel se add kiye gaye product photos `data/uploads/` mein save hote hain aur catalog `data/gallery-data.json` + `src/data/products.js` mein sync hota hai.
 - Browser mein open karein: `http://localhost:3000`
 
 ## 4. Project Test & Verify Karein
@@ -52,15 +53,17 @@ npm run build
 
 Isse aapka production-ready static bundle `dist/` folder mein generate ho jayega.
 
-### 2. Deploy se pehle local production preview test karein
+### 2. Deploy se pehle local production server test karein
 
 ```bash
-npm run preview
+npm start
 ```
+
+(`NODE_ENV=production node server.js` built `dist/` aur `/data/uploads` + `/api/*` dono ko port `3000` par serve karega.)
 
 ### 3. Deploy
 
-- **Vercel / Netlify / Cloudflare Pages** par deploy karte waqt:
+- **Node Server Hosting (Render / Railway / VPS / Cloud Run)** par deploy karte waqt:
   - **Build Command:** `npm run build`
-  - **Output Directory:** `dist`
-- Ya directly `dist/` folder ko kisi bhi static hosting par upload kar sakte hain. *(Kyunki abhi Razorpay aur storage client-side/demo state mein hain, kisi backend server ya secret `.env` key ki zaroorat nahi hai jab tak aap real Razorpay/backend API add nahi karte.)*
+  - **Start Command:** `npm start`
+  - **Data Persistence:** `data/` folder mein `gallery-data.json` aur `uploads/` store hote hain.
