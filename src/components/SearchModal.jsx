@@ -5,19 +5,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, X, ArrowRight } from 'lucide-react';
-import { Product } from '../types';
-import { formatINR } from '../lib/ecommerceLogic';
-import { ResinArtImage } from './ResinArtImage';
+import { formatINR } from '../lib/ecommerceLogic.js';
+import { ResinArtImage } from './ResinArtImage.jsx';
 
-interface SearchModalProps {
-  isOpen: boolean;
-  products: Product[];
-  onClose: () => void;
-  onSelectProduct: (product: Product) => void;
-  onNavigateToShopWithSearch: (term: string) => void;
-}
-
-export const SearchModal: React.FC<SearchModalProps> = ({
+export const SearchModal = ({
   isOpen,
   products,
   onClose,
@@ -25,7 +16,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   onNavigateToShopWithSearch
 }) => {
   const [query, setQuery] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) {

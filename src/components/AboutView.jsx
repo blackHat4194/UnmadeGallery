@@ -4,15 +4,11 @@
  */
 
 import React from 'react';
-import { Sparkles, ShieldCheck, HeartHandshake, Award, Clock, ArrowRight } from 'lucide-react';
-import { ResinArtImage } from './ResinArtImage';
-import { BRAND_VALUES } from '../data/products';
+import { ArrowRight } from 'lucide-react';
+import { ResinArtImage } from './ResinArtImage.jsx';
+import { BRAND_VALUES } from '../data/products.js';
 
-interface AboutViewProps {
-  onNavigate: (page: string) => void;
-}
-
-export const AboutView: React.FC<AboutViewProps> = ({ onNavigate }) => {
+export const AboutView = ({ onNavigate }) => {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-20">
       {/* Editorial Header */}

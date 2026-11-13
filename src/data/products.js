@@ -3,9 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Product, CustomerReview } from '../types';
-
-export const INITIAL_PRODUCTS: Product[] = [
+export const INITIAL_PRODUCTS = [
   {
     id: 'unmade-001',
     name: 'Aura Botanical Pendant',
@@ -291,7 +289,7 @@ export const INITIAL_PRODUCTS: Product[] = [
   }
 ];
 
-export const CUSTOMER_REVIEWS: CustomerReview[] = [
+export const CUSTOMER_REVIEWS = [
   {
     id: 'rev-01',
     author: 'Ananya Sharma',

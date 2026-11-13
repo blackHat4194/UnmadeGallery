@@ -3,18 +3,55 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { CartItem } from '../types';
-
 export const FREE_SHIPPING_THRESHOLD = 3000;
 export const STANDARD_SHIPPING_FEE = 250;
 export const GST_RATE = 0.03; // 3% on handcrafted fine art/jewellery
 
 /**
+ * Deterministically sorts catalog products based on selected criteria
+ */
+export function sortProducts(products, sortBy) {
+  return [...products].sort((a, b) => {
+    switch (sortBy) {
+      case 'price-asc': {
+        const diff = a.price - b.price;
+        return diff !== 0 ? diff : a.name.localeCompare(b.name);
+      }
+      case 'price-desc': {
+        const diff = b.price - a.price;
+        return diff !== 0 ? diff : a.name.localeCompare(b.name);
+      }
+      case 'newest': {
+        // Prioritize explicit new arrivals
+        if (Boolean(a.isNewArrival) !== Boolean(b.isNewArrival)) {
+          return a.isNewArrival ? -1 : 1;
+        }
+        // Then by ID descending (e.g. unmade-008 > unmade-001)
+        return b.id.localeCompare(a.id, undefined, { numeric: true });
+      }
+      case 'name-asc': {
+        return a.name.localeCompare(b.name);
+      }
+      case 'popularity':
+      default: {
+        // Popularity: Curator's Choice / Best Sellers (+500 score) + (reviewCount * rating)
+        const scoreA = (a.isBestSeller ? 500 : 0) + (a.reviewCount * a.rating);
+        const scoreB = (b.isBestSeller ? 500 : 0) + (b.reviewCount * b.rating);
+        if (scoreB !== scoreA) {
+          return scoreB - scoreA;
+        }
+        return b.rating - a.rating;
+      }
+    }
+  });
+}
+
+/**
  * Calculates cart subtotal, shipping fee, tax and grand total in INR (₹)
  */
-export function calculateOrderSummary(items: CartItem[], appliedCoupon?: string) {
+export function calculateOrderSummary(items, appliedCoupon) {
   const subtotal = items.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
-  
+
   let discount = 0;
   if (appliedCoupon?.toUpperCase() === 'FIRSTSTORY') {
     discount = Math.round(subtotal * 0.1); // 10% welcome discount
@@ -25,7 +62,7 @@ export function calculateOrderSummary(items: CartItem[], appliedCoupon?: string)
   const discountedSubtotal = Math.max(0, subtotal - discount);
   const isFreeShipping = discountedSubtotal >= FREE_SHIPPING_THRESHOLD || items.length === 0;
   const shipping = items.length === 0 ? 0 : isFreeShipping ? 0 : STANDARD_SHIPPING_FEE;
-  
+
   // Handcrafted resin art tax
   const tax = Math.round(discountedSubtotal * GST_RATE);
   const total = discountedSubtotal + shipping + tax;
@@ -46,14 +83,9 @@ export function calculateOrderSummary(items: CartItem[], appliedCoupon?: string)
 /**
  * Calculate custom commission price estimate based on item type and inclusions
  */
-export function estimateCustomOrderPrice(options: {
-  itemType: string;
-  flowerCount: number;
-  metalAccents: string;
-  hasPersonalizedText: boolean;
-}): number {
+export function estimateCustomOrderPrice(options) {
   let base = 2500;
-  
+
   switch (options.itemType) {
     case 'Preserved Floral Pendant':
       base = 2400;
@@ -94,7 +126,7 @@ export function estimateCustomOrderPrice(options: {
 /**
  * Formats amount into Indian Rupee standard format (e.g. ₹2,450)
  */
-export function formatINR(amount: number): string {
+export function formatINR(amount) {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: 'INR',

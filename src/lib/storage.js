@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Product, CartItem, Order, CustomOrderRequest } from '../types';
-import { INITIAL_PRODUCTS } from '../data/products';
+import { INITIAL_PRODUCTS } from '../data/products.js';
 
 const STORAGE_KEYS = {
   PRODUCTS: 'unmade_products_v1',
@@ -15,7 +14,7 @@ const STORAGE_KEYS = {
   USER: 'unmade_user_profile_v1'
 };
 
-const SEED_ORDERS: Order[] = [
+const SEED_ORDERS = [
   {
     id: 'ord-8821',
     orderNumber: 'UG-2026-8821',
@@ -73,7 +72,7 @@ const SEED_ORDERS: Order[] = [
   }
 ];
 
-const SEED_CUSTOM_REQUESTS: CustomOrderRequest[] = [
+const SEED_CUSTOM_REQUESTS = [
   {
     id: 'cust-101',
     requestDate: '28 Oct 2026',
@@ -108,7 +107,7 @@ const SEED_CUSTOM_REQUESTS: CustomOrderRequest[] = [
   }
 ];
 
-export function getStoredProducts(): Product[] {
+export function getStoredProducts() {
   if (typeof window === 'undefined') return INITIAL_PRODUCTS;
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
@@ -122,12 +121,12 @@ export function getStoredProducts(): Product[] {
   }
 }
 
-export function saveStoredProducts(products: Product[]): void {
+export function saveStoredProducts(products) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
 }
 
-export function getStoredCart(): CartItem[] {
+export function getStoredCart() {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.CART);
@@ -137,12 +136,12 @@ export function getStoredCart(): CartItem[] {
   }
 }
 
-export function saveStoredCart(cart: CartItem[]): void {
+export function saveStoredCart(cart) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(cart));
 }
 
-export function getStoredWishlist(): string[] {
+export function getStoredWishlist() {
   if (typeof window === 'undefined') return ['unmade-001', 'unmade-002'];
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.WISHLIST);
@@ -152,12 +151,12 @@ export function getStoredWishlist(): string[] {
   }
 }
 
-export function saveStoredWishlist(wishlist: string[]): void {
+export function saveStoredWishlist(wishlist) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(STORAGE_KEYS.WISHLIST, JSON.stringify(wishlist));
 }
 
-export function getStoredOrders(): Order[] {
+export function getStoredOrders() {
   if (typeof window === 'undefined') return SEED_ORDERS;
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.ORDERS);
@@ -171,14 +170,14 @@ export function getStoredOrders(): Order[] {
   }
 }
 
-export function saveStoredOrder(order: Order): void {
+export function saveStoredOrder(order) {
   if (typeof window === 'undefined') return;
   const current = getStoredOrders();
   const updated = [order, ...current];
   localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated));
 }
 
-export function updateStoredOrderStatus(orderId: string, status: Order['status']): Order[] {
+export function updateStoredOrderStatus(orderId, status) {
   const current = getStoredOrders();
   const updated = current.map(o => o.id === orderId ? { ...o, status } : o);
   if (typeof window !== 'undefined') {
@@ -187,7 +186,7 @@ export function updateStoredOrderStatus(orderId: string, status: Order['status']
   return updated;
 }
 
-export function getStoredCustomOrders(): CustomOrderRequest[] {
+export function getStoredCustomOrders() {
   if (typeof window === 'undefined') return SEED_CUSTOM_REQUESTS;
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.CUSTOM_ORDERS);
@@ -201,14 +200,14 @@ export function getStoredCustomOrders(): CustomOrderRequest[] {
   }
 }
 
-export function saveStoredCustomOrder(request: CustomOrderRequest): void {
+export function saveStoredCustomOrder(request) {
   if (typeof window === 'undefined') return;
   const current = getStoredCustomOrders();
   const updated = [request, ...current];
   localStorage.setItem(STORAGE_KEYS.CUSTOM_ORDERS, JSON.stringify(updated));
 }
 
-export function updateStoredCustomOrderStatus(requestId: string, status: CustomOrderRequest['status']): CustomOrderRequest[] {
+export function updateStoredCustomOrderStatus(requestId, status) {
   const current = getStoredCustomOrders();
   const updated = current.map(c => c.id === requestId ? { ...c, status } : c);
   if (typeof window !== 'undefined') {
@@ -217,18 +216,8 @@ export function updateStoredCustomOrderStatus(requestId: string, status: CustomO
   return updated;
 }
 
-export interface UserProfile {
-  name: string;
-  email: string;
-  phone: string;
-  street: string;
-  city: string;
-  state: string;
-  pincode: string;
-}
-
-export function getStoredUserProfile(): UserProfile {
-  const defaultProfile: UserProfile = {
+export function getStoredUserProfile() {
+  const defaultProfile = {
     name: 'Devika Singhania',
     email: 'devika.s@example.com',
     phone: '+91 98765 43210',
@@ -246,7 +235,7 @@ export function getStoredUserProfile(): UserProfile {
   }
 }
 
-export function saveStoredUserProfile(profile: UserProfile): void {
+export function saveStoredUserProfile(profile) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(profile));
 }

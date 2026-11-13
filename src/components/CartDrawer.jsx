@@ -4,22 +4,11 @@
  */
 
 import React, { useState } from 'react';
-import { X, Trash2, ShoppingBag, ArrowRight, ShieldCheck, Tag, Sparkles } from 'lucide-react';
-import { CartItem } from '../types';
-import { ResinArtImage } from './ResinArtImage';
-import { calculateOrderSummary, formatINR, FREE_SHIPPING_THRESHOLD } from '../lib/ecommerceLogic';
+import { X, Trash2, ShoppingBag, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { ResinArtImage } from './ResinArtImage.jsx';
+import { calculateOrderSummary, formatINR, FREE_SHIPPING_THRESHOLD } from '../lib/ecommerceLogic.js';
 
-interface CartDrawerProps {
-  isOpen: boolean;
-  cart: CartItem[];
-  onClose: () => void;
-  onUpdateQuantity: (productId: string, quantity: number) => void;
-  onRemoveItem: (productId: string) => void;
-  onProceedToCheckout: () => void;
-  onExploreShop: () => void;
-}
-
-export const CartDrawer: React.FC<CartDrawerProps> = ({
+export const CartDrawer = ({
   isOpen,
   cart,
   onClose,
@@ -29,14 +18,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onExploreShop
 }) => {
   const [couponInput, setCouponInput] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState<string | undefined>(undefined);
-  const [couponError, setCouponError] = useState<string | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState(undefined);
+  const [couponError, setCouponError] = useState(null);
 
   if (!isOpen) return null;
 
   const summary = calculateOrderSummary(cart, appliedCoupon);
 
-  const handleApplyCoupon = (e: React.FormEvent) => {
+  const handleApplyCoupon = (e) => {
     e.preventDefault();
     setCouponError(null);
     const code = couponInput.trim().toUpperCase();
@@ -58,7 +47,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     >
       <div className="w-full max-w-md bg-[#F7F3EA] h-full shadow-2xl flex flex-col justify-between border-l border-[#E8DFD0]">
         {/* Drawer Header */}
-        <div className="p-5 border-b border-[#E8DFD0] bg-white flex items-center justify-between">
+        <div className="p-4 sm:p-5 border-b border-[#E8DFD0] bg-white flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ShoppingBag className="w-5 h-5 text-[#164B3B]" />
             <h2 className="font-serif text-lg font-medium text-[#29231F]">
@@ -67,7 +56,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-full text-[#29231F] hover:bg-[#E8DFD0] transition-colors cursor-pointer"
+            className="p-1.5 rounded-full text-[#29231F] hover:bg-[#E8DFD0] transition-colors cursor-pointer"
             aria-label="Close shopping bag drawer"
           >
             <X className="w-5 h-5" />
@@ -75,10 +64,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         </div>
 
         {/* Free Shipping Progress Indicator */}
-        <div className="bg-[#E8DFD0]/40 px-5 py-3 border-b border-[#E8DFD0]">
+        <div className="bg-[#E8DFD0]/40 px-4 sm:px-5 py-2.5 sm:py-3 border-b border-[#E8DFD0]">
           {summary.isFreeShipping && cart.length > 0 ? (
             <div className="flex items-center gap-2 text-xs text-[#164B3B] font-semibold">
-              <Sparkles className="w-4 h-4 text-[#C6A15B]" />
+              <Sparkles className="w-4 h-4 text-[#C6A15B] shrink-0" />
               <span>You have unlocked Complimentary Insured Delivery across India!</span>
             </div>
           ) : (
@@ -97,7 +86,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         </div>
 
         {/* Cart Item List */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3 sm:space-y-4">
           {cart.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-6">
               <div className="w-16 h-16 rounded-full bg-[#E8DFD0]/50 flex items-center justify-center mb-4">
@@ -155,7 +144,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     <div className="flex items-center border border-[#E8DFD0] rounded-md overflow-hidden bg-[#F7F3EA]">
                       <button
                         onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
-                        className="px-2 py-0.5 text-xs font-bold hover:bg-[#E8DFD0] transition-colors cursor-pointer"
+                        className="px-2.5 py-1 text-xs font-bold hover:bg-[#E8DFD0] transition-colors cursor-pointer"
                         aria-label="Decrease quantity"
                       >
                         -
@@ -166,7 +155,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                       <button
                         onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
                         disabled={item.quantity >= item.product.stock}
-                        className="px-2 py-0.5 text-xs font-bold hover:bg-[#E8DFD0] transition-colors cursor-pointer disabled:opacity-30"
+                        className="px-2.5 py-1 text-xs font-bold hover:bg-[#E8DFD0] transition-colors cursor-pointer disabled:opacity-30"
                         aria-label="Increase quantity"
                       >
                         +
@@ -185,7 +174,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
         {/* Drawer Footer / Summary / Checkout */}
         {cart.length > 0 && (
-          <div className="p-5 border-t border-[#E8DFD0] bg-white space-y-4">
+          <div className="p-4 sm:p-5 border-t border-[#E8DFD0] bg-white space-y-3 sm:space-y-4">
             {/* Promo Code Input */}
             <form onSubmit={handleApplyCoupon} className="flex gap-2">
               <div className="relative flex-1">
@@ -258,8 +247,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               <ArrowRight className="w-4 h-4 text-[#C6A15B]" />
             </button>
 
-            <div className="flex items-center justify-center gap-2 text-[11px] text-[#29231F]/60">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#164B3B]" />
+            <div className="flex items-center justify-center gap-2 text-[11px] text-[#29231F]/60 text-center">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#164B3B] shrink-0" />
               <span>Only Online Payment Supported · Razorpay 256-bit Secure</span>
             </div>
           </div>

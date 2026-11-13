@@ -4,23 +4,11 @@
  */
 
 import React, { useState } from 'react';
-import { X, Heart, ShoppingBag, ShieldCheck, Sparkles, Clock, RefreshCw, Check, ArrowRight } from 'lucide-react';
-import { Product } from '../types';
-import { ResinArtImage } from './ResinArtImage';
-import { formatINR } from '../lib/ecommerceLogic';
+import { X, Heart, ShoppingBag, ShieldCheck, Sparkles, Clock, Check, ArrowRight } from 'lucide-react';
+import { ResinArtImage } from './ResinArtImage.jsx';
+import { formatINR } from '../lib/ecommerceLogic.js';
 
-interface ProductDetailModalProps {
-  product: Product;
-  allProducts: Product[];
-  isWishlisted: boolean;
-  onClose: () => void;
-  onToggleWishlist: (productId: string) => void;
-  onAddToCart: (product: Product, quantity: number) => void;
-  onBuyNow: (product: Product, quantity: number) => void;
-  onSelectProduct: (product: Product) => void;
-}
-
-export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
+export const ProductDetailModal = ({
   product,
   allProducts,
   isWishlisted,
@@ -31,7 +19,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onSelectProduct
 }) => {
   const [quantity, setQuantity] = useState(1);
-  const [activeTab, setActiveTab] = useState<'specs' | 'care' | 'artisan'>('specs');
+  const [activeTab, setActiveTab] = useState('specs');
   const [addedNotice, setAddedNotice] = useState(false);
 
   const relatedProducts = allProducts
@@ -55,13 +43,13 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
       aria-modal="true"
       aria-label={`Product details for ${product.name}`}
     >
-      <div className="relative w-full max-w-5xl bg-[#F7F3EA] rounded-2xl shadow-2xl border border-[#E8DFD0] overflow-hidden my-8 max-h-[92vh] flex flex-col">
+      <div className="relative w-full max-w-5xl bg-[#F7F3EA] rounded-2xl shadow-2xl border border-[#E8DFD0] overflow-hidden my-4 sm:my-8 max-h-[95vh] flex flex-col">
         {/* Modal Top Header Bar */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E8DFD0] bg-white/70 backdrop-blur-sm sticky top-0 z-20">
-          <div className="flex items-center gap-2 text-xs text-[#29231F]/70 uppercase tracking-widest font-medium">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-[#E8DFD0] bg-white/90 backdrop-blur-sm sticky top-0 z-20">
+          <div className="flex items-center gap-2 text-[10px] sm:text-xs text-[#29231F]/70 uppercase tracking-widest font-medium">
             <span>UNMADE GALLERY</span>
             <span>/</span>
-            <span>{product.collection}</span>
+            <span className="truncate max-w-[140px] sm:max-w-none">{product.collection}</span>
           </div>
 
           <button
@@ -74,11 +62,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         </div>
 
         {/* Modal Content Scrollable Area */}
-        <div className="overflow-y-auto p-6 sm:p-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+        <div className="overflow-y-auto p-4 sm:p-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12">
             {/* Left Column: Visual Artwork Gallery */}
-            <div className="lg:col-span-6 flex flex-col gap-4">
-              <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-white border border-[#E8DFD0] shadow-sm">
+            <div className="lg:col-span-6 flex flex-col gap-3 sm:gap-4">
+              <div className="relative aspect-4/3 sm:aspect-square w-full rounded-xl overflow-hidden bg-white border border-[#E8DFD0] shadow-sm">
                 <ResinArtImage
                   type={product.resinArtworkType}
                   alt={product.name}
@@ -86,7 +74,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 />
 
                 {/* Corner Artisan Seal */}
-                <div className="absolute top-4 left-4 bg-[#164B3B] text-[#F7F3EA] text-[10px] font-semibold tracking-widest uppercase px-2.5 py-1 rounded-sm shadow-sm flex items-center gap-1.5">
+                <div className="absolute top-3 left-3 bg-[#164B3B] text-[#F7F3EA] text-[10px] font-semibold tracking-widest uppercase px-2.5 py-1 rounded-sm shadow-sm flex items-center gap-1.5">
                   <Sparkles className="w-3 h-3 text-[#C6A15B]" />
                   <span>Studio Cast</span>
                 </div>
@@ -94,19 +82,19 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 {/* Wishlist Button */}
                 <button
                   onClick={() => onToggleWishlist(product.id)}
-                  className={`absolute top-4 right-4 p-2.5 rounded-full backdrop-blur-md shadow-md transition-all cursor-pointer ${
+                  className={`absolute top-3 right-3 p-2 sm:p-2.5 rounded-full backdrop-blur-md shadow-md transition-all cursor-pointer ${
                     isWishlisted
                       ? 'bg-[#164B3B] text-[#F7F3EA]'
                       : 'bg-[#F7F3EA]/90 text-[#29231F] hover:bg-white'
                   }`}
                   aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
                 >
-                  <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-[#C6A15B] text-[#C6A15B]' : 'stroke-[1.8]'}`} />
+                  <Heart className={`w-4 sm:w-5 h-4 sm:h-5 ${isWishlisted ? 'fill-[#C6A15B] text-[#C6A15B]' : 'stroke-[1.8]'}`} />
                 </button>
               </div>
 
               {/* Gallery Feature Strip */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 <div className="bg-white p-3 rounded-lg border border-[#E8DFD0] text-center">
                   <Clock className="w-4 h-4 mx-auto text-[#164B3B] mb-1" />
                   <p className="text-[10px] uppercase tracking-wider text-[#29231F]/60">Curing Time</p>
@@ -147,7 +135,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 </p>
 
                 {/* Price Display in INR */}
-                <div className="mt-5 flex items-baseline gap-3 pb-5 border-b border-[#E8DFD0]">
+                <div className="mt-5 flex flex-wrap items-baseline gap-3 pb-5 border-b border-[#E8DFD0]">
                   <span className="text-2xl sm:text-3xl font-bold text-[#164B3B] tabular-nums">
                     {formatINR(product.price)}
                   </span>
@@ -156,7 +144,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                       {formatINR(product.originalPrice)}
                     </span>
                   )}
-                  <span className="text-xs text-[#29231F]/60 ml-2">
+                  <span className="text-xs text-[#29231F]/60">
                     (Inclusive of all taxes · Free delivery on orders ₹3,000+)
                   </span>
                 </div>
@@ -241,10 +229,10 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
                 {/* Tabs: Specifications, Care Instructions, Artisan Notes */}
                 <div className="mt-8 border-t border-[#E8DFD0] pt-6">
-                  <div className="flex items-center gap-4 border-b border-[#E8DFD0] pb-2 text-xs font-semibold tracking-wider uppercase">
+                  <div className="flex items-center gap-4 border-b border-[#E8DFD0] pb-2 text-xs font-semibold tracking-wider uppercase overflow-x-auto">
                     <button
                       onClick={() => setActiveTab('specs')}
-                      className={`pb-2 border-b-2 cursor-pointer transition-colors ${
+                      className={`pb-2 border-b-2 cursor-pointer transition-colors whitespace-nowrap ${
                         activeTab === 'specs'
                           ? 'border-[#164B3B] text-[#164B3B]'
                           : 'border-transparent text-[#29231F]/60 hover:text-[#29231F]'
@@ -254,7 +242,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     </button>
                     <button
                       onClick={() => setActiveTab('care')}
-                      className={`pb-2 border-b-2 cursor-pointer transition-colors ${
+                      className={`pb-2 border-b-2 cursor-pointer transition-colors whitespace-nowrap ${
                         activeTab === 'care'
                           ? 'border-[#164B3B] text-[#164B3B]'
                           : 'border-transparent text-[#29231F]/60 hover:text-[#29231F]'
@@ -264,7 +252,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     </button>
                     <button
                       onClick={() => setActiveTab('artisan')}
-                      className={`pb-2 border-b-2 cursor-pointer transition-colors ${
+                      className={`pb-2 border-b-2 cursor-pointer transition-colors whitespace-nowrap ${
                         activeTab === 'artisan'
                           ? 'border-[#164B3B] text-[#164B3B]'
                           : 'border-transparent text-[#29231F]/60 hover:text-[#29231F]'
@@ -276,7 +264,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
                   <div className="pt-4 text-xs">
                     {activeTab === 'specs' && (
-                      <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+                      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2.5">
                         <div>
                           <dt className="text-[#29231F]/50">Materials</dt>
                           <dd className="font-medium text-[#29231F] mt-0.5">{product.specifications.materials}</dd>

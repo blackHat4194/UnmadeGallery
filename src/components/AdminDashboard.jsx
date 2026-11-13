@@ -4,38 +4,22 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  BarChart3, 
-  Package, 
-  ShoppingBag, 
-  Users, 
-  AlertTriangle, 
-  Sparkles, 
-  Plus, 
-  Edit3, 
-  Check, 
-  ArrowLeft, 
-  Clock, 
-  Layers, 
-  Search,
-  Filter
+import {
+  BarChart3,
+  Package,
+  ShoppingBag,
+  AlertTriangle,
+  Sparkles,
+  Plus,
+  Edit3,
+  ArrowLeft,
+  Layers,
+  Search
 } from 'lucide-react';
-import { Product, Order, CustomOrderRequest, Category } from '../types';
-import { formatINR } from '../lib/ecommerceLogic';
-import { ResinArtImage } from './ResinArtImage';
+import { formatINR } from '../lib/ecommerceLogic.js';
+import { ResinArtImage } from './ResinArtImage.jsx';
 
-interface AdminDashboardProps {
-  products: Product[];
-  orders: Order[];
-  customRequests: CustomOrderRequest[];
-  onUpdateProduct: (product: Product) => void;
-  onAddProduct: (product: Product) => void;
-  onUpdateOrderStatus: (orderId: string, status: Order['status']) => void;
-  onUpdateCustomStatus: (requestId: string, status: CustomOrderRequest['status']) => void;
-  onExitAdmin: () => void;
-}
-
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({
+export const AdminDashboard = ({
   products,
   orders,
   customRequests,
@@ -45,14 +29,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onUpdateCustomStatus,
   onExitAdmin
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'custom' | 'inventory'>('overview');
+  const [activeTab, setActiveTab] = useState('overview');
   const [searchTerm, setSearchTerm] = useState('');
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editingProduct, setEditingProduct] = useState(null);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
 
   // New product form state
   const [newProdName, setNewProdName] = useState('');
-  const [newProdCategory, setNewProdCategory] = useState<Category>('Floral Jewellery');
+  const [newProdCategory, setNewProdCategory] = useState('Floral Jewellery');
   const [newProdPrice, setNewProdPrice] = useState(2500);
   const [newProdStock, setNewProdStock] = useState(5);
   const [newProdSubtitle, setNewProdSubtitle] = useState('');
@@ -62,7 +46,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const lowStockProducts = products.filter((p) => p.stock <= 4);
   const pendingOrders = orders.filter((o) => o.status !== 'Delivered');
 
-  const handleSaveEdit = (e: React.FormEvent) => {
+  const handleSaveEdit = (e) => {
     e.preventDefault();
     if (editingProduct) {
       onUpdateProduct(editingProduct);
@@ -70,11 +54,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  const handleCreateProduct = (e: React.FormEvent) => {
+  const handleCreateProduct = (e) => {
     e.preventDefault();
     if (!newProdName.trim()) return;
 
-    const newProduct: Product = {
+    const newProduct = {
       id: `unmade-${Date.now().toString().slice(-4)}`,
       name: newProdName,
       subtitle: newProdSubtitle || 'Handcrafted botanical resin artwork',
@@ -107,8 +91,90 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   return (
     <div className="min-h-screen bg-[#F4EFE6] text-[#29231F] flex flex-col md:flex-row">
-      {/* Sidebar Navigation */}
-      <aside className="w-full md:w-64 bg-[#29231F] text-[#F7F3EA] p-6 flex flex-col justify-between shrink-0 border-r border-[#3d342e]">
+      {/* Mobile Top Header Bar & Tabs */}
+      <header className="md:hidden bg-[#29231F] text-[#F7F3EA] p-4 border-b border-[#3d342e] sticky top-0 z-30">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-[#164B3B] border border-[#C6A15B] flex items-center justify-center">
+              <Sparkles className="w-3.5 h-3.5 text-[#C6A15B]" />
+            </div>
+            <span className="font-serif text-base font-semibold tracking-wider text-[#F7F3EA] uppercase">
+              UNMADE STUDIO
+            </span>
+          </div>
+
+          <button
+            onClick={onExitAdmin}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-[#E8DFD0] bg-[#3d342e] hover:bg-[#164B3B] rounded-lg transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Storefront</span>
+          </button>
+        </div>
+
+        {/* Horizontal Scrollable Tabs */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs font-medium">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`px-3 py-1.5 rounded-lg whitespace-nowrap cursor-pointer transition-colors ${
+              activeTab === 'overview'
+                ? 'bg-[#164B3B] text-white font-semibold'
+                : 'text-[#E8DFD0]/80 hover:bg-[#3d342e]'
+            }`}
+          >
+            Overview
+          </button>
+          <button
+            onClick={() => setActiveTab('orders')}
+            className={`px-3 py-1.5 rounded-lg whitespace-nowrap cursor-pointer transition-colors flex items-center gap-1.5 ${
+              activeTab === 'orders'
+                ? 'bg-[#164B3B] text-white font-semibold'
+                : 'text-[#E8DFD0]/80 hover:bg-[#3d342e]'
+            }`}
+          >
+            <span>Orders ({orders.length})</span>
+            {pendingOrders.length > 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#C6A15B]" />}
+          </button>
+          <button
+            onClick={() => setActiveTab('products')}
+            className={`px-3 py-1.5 rounded-lg whitespace-nowrap cursor-pointer transition-colors ${
+              activeTab === 'products'
+                ? 'bg-[#164B3B] text-white font-semibold'
+                : 'text-[#E8DFD0]/80 hover:bg-[#3d342e]'
+            }`}
+          >
+            Products ({products.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('custom')}
+            className={`px-3 py-1.5 rounded-lg whitespace-nowrap cursor-pointer transition-colors flex items-center gap-1.5 ${
+              activeTab === 'custom'
+                ? 'bg-[#164B3B] text-white font-semibold'
+                : 'text-[#E8DFD0]/80 hover:bg-[#3d342e]'
+            }`}
+          >
+            <span>Custom ({customRequests.length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('inventory')}
+            className={`px-3 py-1.5 rounded-lg whitespace-nowrap cursor-pointer transition-colors flex items-center gap-1.5 ${
+              activeTab === 'inventory'
+                ? 'bg-[#164B3B] text-white font-semibold'
+                : 'text-[#E8DFD0]/80 hover:bg-[#3d342e]'
+            }`}
+          >
+            <span>Inventory</span>
+            {lowStockProducts.length > 0 && (
+              <span className="text-[10px] bg-red-900 text-red-200 px-1 rounded">
+                {lowStockProducts.length}
+              </span>
+            )}
+          </button>
+        </div>
+      </header>
+
+      {/* Desktop Sidebar Navigation */}
+      <aside className="hidden md:flex w-64 bg-[#29231F] text-[#F7F3EA] p-6 flex-col justify-between shrink-0 border-r border-[#3d342e]">
         <div>
           {/* Brand header */}
           <div className="flex items-center gap-2 mb-8">
@@ -219,11 +285,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </aside>
 
       {/* Main Admin Content Body */}
-      <main className="flex-1 p-6 sm:p-10 overflow-y-auto">
+      <main className="flex-1 p-4 sm:p-8 lg:p-10 overflow-y-auto">
         {/* Top bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-4 border-b border-[#E8DFD0]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8 pb-4 border-b border-[#E8DFD0]">
           <div>
-            <span className="text-xs font-mono text-[#C6A15B] uppercase tracking-wider font-semibold">
+            <span className="text-[11px] sm:text-xs font-mono text-[#C6A15B] uppercase tracking-wider font-semibold">
               UNMADE GALLERY Admin Portal
             </span>
             <h1 className="font-serif text-2xl sm:text-3xl font-medium text-[#164B3B]">
@@ -236,7 +302,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-xs text-[#29231F]/60">Live Database Synced</span>
+            <span className="hidden sm:inline text-xs text-[#29231F]/60">Live Database Synced</span>
             <button
               onClick={() => setIsAddingProduct(true)}
               className="flex items-center gap-1.5 px-3.5 py-2 bg-[#164B3B] text-[#F7F3EA] text-xs font-semibold rounded-lg hover:bg-[#20634f] transition-colors cursor-pointer shadow-xs"
@@ -249,9 +315,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         {/* Tab 1: Overview */}
         {activeTab === 'overview' && (
-          <div className="space-y-8">
-            {/* KPI Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="space-y-6 sm:space-y-8">
+            {/* KPI Cards Grid (2-cols on mobile, 4-cols on lg) */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
               <div className="bg-white p-5 rounded-xl border border-[#E8DFD0] shadow-xs">
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-[#29231F]/60">
                   Total Revenue
@@ -298,8 +364,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <h3 className="font-serif text-lg font-medium text-[#29231F] mb-4">
                 Recent Orders Needing Resin Artisan Action
               </h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
+              <div className="overflow-x-auto -mx-2 sm:mx-0">
+                <table className="w-full text-left text-xs min-w-[620px]">
                   <thead>
                     <tr className="border-b border-[#E8DFD0] text-[#29231F]/60 uppercase tracking-wider text-[10px]">
                       <th className="pb-3">Order Number</th>
@@ -376,7 +442,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </label>
                       <select
                         value={ord.status}
-                        onChange={(e) => onUpdateOrderStatus(ord.id, e.target.value as Order['status'])}
+                        onChange={(e) => onUpdateOrderStatus(ord.id, e.target.value)}
                         className="px-3 py-1.5 bg-white border border-[#C6A15B] rounded-lg text-xs font-medium text-[#164B3B] focus:outline-none"
                       >
                         <option>Order Placed</option>
@@ -474,7 +540,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <span className="text-xs font-bold text-[#164B3B] tabular-nums">Est. {formatINR(req.estimatedPrice)}</span>
                       <select
                         value={req.status}
-                        onChange={(e) => onUpdateCustomStatus(req.id, e.target.value as CustomOrderRequest['status'])}
+                        onChange={(e) => onUpdateCustomStatus(req.id, e.target.value)}
                         className="px-2.5 py-1 bg-white border border-[#C6A15B] rounded text-xs font-semibold text-[#164B3B]"
                       >
                         <option>Pending Review</option>
@@ -610,7 +676,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <label className="block text-xs font-medium text-[#29231F]/70 mb-1">Category</label>
                   <select
                     value={newProdCategory}
-                    onChange={(e) => setNewProdCategory(e.target.value as Category)}
+                    onChange={(e) => setNewProdCategory(e.target.value)}
                     className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
                   >
                     <option>Earrings</option>

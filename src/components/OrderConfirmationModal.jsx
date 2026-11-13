@@ -4,17 +4,10 @@
  */
 
 import React from 'react';
-import { CheckCircle2, Package, Sparkles, ArrowRight, ShieldCheck } from 'lucide-react';
-import { Order } from '../types';
-import { formatINR } from '../lib/ecommerceLogic';
+import { CheckCircle2, Package } from 'lucide-react';
+import { formatINR } from '../lib/ecommerceLogic.js';
 
-interface OrderConfirmationModalProps {
-  order: Order | null;
-  onClose: () => void;
-  onViewOrderInAccount: (order: Order) => void;
-}
-
-export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
+export const OrderConfirmationModal = ({
   order,
   onClose,
   onViewOrderInAccount

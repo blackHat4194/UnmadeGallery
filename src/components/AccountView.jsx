@@ -4,23 +4,12 @@
  */
 
 import React, { useState } from 'react';
-import { Package, Heart, MapPin, User, CheckCircle2, Clock, Truck, ShieldCheck, ChevronRight } from 'lucide-react';
-import { Order, Product } from '../types';
-import { formatINR } from '../lib/ecommerceLogic';
-import { ResinArtImage } from './ResinArtImage';
-import { getStoredUserProfile, saveStoredUserProfile, UserProfile } from '../lib/storage';
+import { Package, Heart, MapPin, User, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { formatINR } from '../lib/ecommerceLogic.js';
+import { ResinArtImage } from './ResinArtImage.jsx';
+import { getStoredUserProfile, saveStoredUserProfile } from '../lib/storage.js';
 
-interface AccountViewProps {
-  initialTab?: 'orders' | 'profile' | 'wishlist' | 'address';
-  orders: Order[];
-  wishlistIds: string[];
-  allProducts: Product[];
-  onToggleWishlist: (productId: string) => void;
-  onAddToCart: (product: Product) => void;
-  onSelectProduct: (product: Product) => void;
-}
-
-export const AccountView: React.FC<AccountViewProps> = ({
+export const AccountView = ({
   initialTab = 'orders',
   orders,
   wishlistIds,
@@ -29,14 +18,14 @@ export const AccountView: React.FC<AccountViewProps> = ({
   onAddToCart,
   onSelectProduct
 }) => {
-  const [activeTab, setActiveTab] = useState<'orders' | 'profile' | 'wishlist' | 'address'>(initialTab);
-  const [profile, setProfile] = useState<UserProfile>(getStoredUserProfile());
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(orders[0] || null);
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const [profile, setProfile] = useState(getStoredUserProfile());
+  const [selectedOrder, setSelectedOrder] = useState(orders[0] || null);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const wishlistedProducts = allProducts.filter((p) => wishlistIds.includes(p.id));
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = (e) => {
     e.preventDefault();
     saveStoredUserProfile(profile);
     setSaveSuccess(true);
@@ -51,7 +40,7 @@ export const AccountView: React.FC<AccountViewProps> = ({
     { label: 'Delivered', desc: 'Safely in client possession' }
   ];
 
-  const getStepIndex = (status: Order['status']) => {
+  const getStepIndex = (status) => {
     switch (status) {
       case 'Order Placed': return 0;
       case 'Resin Pouring & Curing': return 1;
@@ -312,7 +301,7 @@ export const AccountView: React.FC<AccountViewProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {wishlistedProducts.map((p) => (
                 <div key={p.id} className="bg-white rounded-xl border border-[#E8DFD0] p-4 flex flex-col justify-between shadow-xs">
-                  <div>
+                  <div onClick={() => onSelectProduct(p)} className="cursor-pointer">
                     <div className="aspect-square rounded-lg overflow-hidden bg-[#F7F3EA] mb-3 border border-[#E8DFD0]">
                       <ResinArtImage type={p.resinArtworkType} alt={p.name} />
                     </div>

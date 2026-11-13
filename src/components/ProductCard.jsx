@@ -5,19 +5,10 @@
 
 import React, { useState } from 'react';
 import { Heart, ShoppingBag, Eye, Check } from 'lucide-react';
-import { Product } from '../types';
-import { ResinArtImage } from './ResinArtImage';
-import { formatINR } from '../lib/ecommerceLogic';
+import { ResinArtImage } from './ResinArtImage.jsx';
+import { formatINR } from '../lib/ecommerceLogic.js';
 
-interface ProductCardProps {
-  product: Product;
-  isWishlisted: boolean;
-  onToggleWishlist: (productId: string) => void;
-  onAddToCart: (product: Product, e?: React.MouseEvent) => void;
-  onSelectProduct: (product: Product) => void;
-}
-
-export const ProductCard: React.FC<ProductCardProps> = ({
+export const ProductCard = ({
   product,
   isWishlisted,
   onToggleWishlist,
@@ -26,7 +17,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 }) => {
   const [justAdded, setJustAdded] = useState(false);
 
-  const handleQuickAdd = (e: React.MouseEvent) => {
+  const handleQuickAdd = (e) => {
     e.stopPropagation();
     onAddToCart(product, e);
     setJustAdded(true);
@@ -116,42 +107,59 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       </div>
 
       {/* Card Content & Details */}
-      <div className="p-4 sm:p-5 flex flex-col flex-1 justify-between bg-white">
+      <div className="p-3 sm:p-5 flex flex-col flex-1 justify-between bg-white">
         <div>
           {/* Metadata Row: Category & Stock with clean bullet */}
-          <div className="flex items-center gap-2 text-xs text-[#29231F]/60 tracking-wider uppercase mb-1.5 font-medium">
-            <span>{product.category}</span>
+          <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-[#29231F]/60 tracking-wider uppercase mb-1 font-medium">
+            <span className="truncate">{product.category}</span>
             <span aria-hidden="true">·</span>
-            <span className={product.stock > 0 ? 'text-[#164B3B]' : 'text-red-700'}>
+            <span className={`shrink-0 ${product.stock > 0 ? 'text-[#164B3B]' : 'text-red-700'}`}>
               {product.stock > 0 ? 'In Studio' : 'Sold Out'}
             </span>
           </div>
 
           {/* Product Name */}
-          <h3 className="font-serif text-lg font-medium text-[#29231F] group-hover:text-[#164B3B] transition-colors line-clamp-1 leading-snug">
+          <h3 className="font-serif text-sm sm:text-base lg:text-lg font-medium text-[#29231F] group-hover:text-[#164B3B] transition-colors line-clamp-1 leading-snug">
             {product.name}
           </h3>
 
           {/* Subtitle / Botanical Inclusions */}
-          <p className="text-xs text-[#29231F]/70 line-clamp-1 mt-1 leading-relaxed">
+          <p className="text-[11px] sm:text-xs text-[#29231F]/70 line-clamp-1 mt-0.5 sm:mt-1 leading-relaxed">
             {product.subtitle}
           </p>
         </div>
 
         {/* Price & Primary Baseline */}
-        <div className="mt-4 pt-3 border-t border-[#E8DFD0]/60 flex items-baseline justify-between">
-          <div className="flex items-baseline gap-2">
-            <span className="text-base font-semibold text-[#164B3B] tabular-nums">
+        <div className="mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-[#E8DFD0]/60 flex items-center justify-between gap-1">
+          <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2">
+            <span className="text-sm sm:text-base font-semibold text-[#164B3B] tabular-nums">
               {formatINR(product.price)}
             </span>
             {product.originalPrice && product.originalPrice > product.price && (
-              <span className="text-xs text-[#29231F]/50 line-through tabular-nums">
+              <span className="text-[10px] sm:text-xs text-[#29231F]/50 line-through tabular-nums">
                 {formatINR(product.originalPrice)}
               </span>
             )}
           </div>
 
-          <span className="text-[11px] font-medium text-[#C6A15B] tracking-wide">
+          {/* Mobile Quick Add Button */}
+          <div className="flex sm:hidden items-center">
+            <button
+              onClick={handleQuickAdd}
+              disabled={!product.inStock || product.stock === 0}
+              className={`p-2 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${
+                justAdded
+                  ? 'bg-[#164B3B] text-[#C6A15B]'
+                  : 'bg-[#164B3B] text-[#F7F3EA] hover:bg-[#20634f]'
+              }`}
+              aria-label={`Quick add ${product.name} to bag`}
+            >
+              {justAdded ? <Check className="w-3.5 h-3.5" /> : <ShoppingBag className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+
+          {/* Desktop Rating Display */}
+          <span className="hidden sm:inline text-[11px] font-medium text-[#C6A15B] tracking-wide shrink-0">
             ★ {product.rating.toFixed(1)} ({product.reviewCount})
           </span>
         </div>

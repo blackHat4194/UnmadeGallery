@@ -4,31 +4,26 @@
  */
 
 import React, { useState } from 'react';
-import { Sparkles, CheckCircle2, ArrowRight, ShieldCheck, HeartHandshake, HelpCircle } from 'lucide-react';
-import { CustomOrderRequest } from '../types';
-import { estimateCustomOrderPrice, formatINR } from '../lib/ecommerceLogic';
-import { saveStoredCustomOrder } from '../lib/storage';
+import { Sparkles, CheckCircle2, ArrowRight, ShieldCheck } from 'lucide-react';
+import { estimateCustomOrderPrice, formatINR } from '../lib/ecommerceLogic.js';
+import { saveStoredCustomOrder } from '../lib/storage.js';
 
-interface CustomOrderStudioProps {
-  onSuccess: (requestId: string) => void;
-}
-
-export const CustomOrderStudio: React.FC<CustomOrderStudioProps> = ({ onSuccess }) => {
-  const [itemType, setItemType] = useState<CustomOrderRequest['itemType']>('Pyramid Keepsake');
-  const [selectedFlowers, setSelectedFlowers] = useState<string[]>(['Dried Red Rose Petals', 'White Baby’s Breath']);
-  const [metalAccents, setMetalAccents] = useState<CustomOrderRequest['metalAccents']>('24k Gold Leaf');
-  const [resinBaseColor, setResinBaseColor] = useState<CustomOrderRequest['resinBaseColor']>('Crystal Clear');
+export const CustomOrderStudio = ({ onSuccess }) => {
+  const [itemType, setItemType] = useState('Pyramid Keepsake');
+  const [selectedFlowers, setSelectedFlowers] = useState(['Dried Red Rose Petals', 'White Baby’s Breath']);
+  const [metalAccents, setMetalAccents] = useState('24k Gold Leaf');
+  const [resinBaseColor, setResinBaseColor] = useState('Crystal Clear');
   const [personalizedText, setPersonalizedText] = useState('');
-  const [occasion, setOccasion] = useState('Wedding Keepsake');
+  const [occasion] = useState('Wedding Keepsake');
   const [specialNotes, setSpecialNotes] = useState('');
-  
+
   const [clientName, setClientName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
   const [clientPhone, setClientPhone] = useState('');
-  
+
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedId, setSubmittedId] = useState('');
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState(null);
 
   const availableFlowers = [
     'Dried Red Rose Petals',
@@ -39,7 +34,7 @@ export const CustomOrderStudio: React.FC<CustomOrderStudioProps> = ({ onSuccess 
     'Wild Hill Lavender'
   ];
 
-  const toggleFlower = (flower: string) => {
+  const toggleFlower = (flower) => {
     if (selectedFlowers.includes(flower)) {
       if (selectedFlowers.length > 1) {
         setSelectedFlowers(selectedFlowers.filter((f) => f !== flower));
@@ -56,7 +51,7 @@ export const CustomOrderStudio: React.FC<CustomOrderStudioProps> = ({ onSuccess 
     hasPersonalizedText: personalizedText.trim().length > 0
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     setErrorMsg(null);
 
@@ -66,7 +61,7 @@ export const CustomOrderStudio: React.FC<CustomOrderStudioProps> = ({ onSuccess 
     }
 
     const randomId = `cust-${Math.floor(100 + Math.random() * 900)}`;
-    const newRequest: CustomOrderRequest = {
+    const newRequest = {
       id: randomId,
       requestDate: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
       clientName,
@@ -134,7 +129,7 @@ export const CustomOrderStudio: React.FC<CustomOrderStudioProps> = ({ onSuccess 
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Form: Interactive Builder */}
-          <form onSubmit={handleSubmit} className="lg:col-span-8 bg-white p-6 sm:p-8 rounded-2xl border border-[#E8DFD0] shadow-sm space-y-8">
+          <form onSubmit={handleSubmit} className="lg:col-span-8 bg-white p-4 sm:p-8 rounded-2xl border border-[#E8DFD0] shadow-sm space-y-6 sm:space-y-8">
             {errorMsg && (
               <div className="p-3 bg-red-50 border border-red-200 text-red-800 rounded-lg text-xs font-medium">
                 {errorMsg}
@@ -146,7 +141,7 @@ export const CustomOrderStudio: React.FC<CustomOrderStudioProps> = ({ onSuccess 
               <label className="block text-xs font-semibold uppercase tracking-wider text-[#29231F]/70 mb-3">
                 1. Select Silhouette &amp; Canvas
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
                 {[
                   'Preserved Floral Pendant',
                   'Statement Earrings',
@@ -157,7 +152,7 @@ export const CustomOrderStudio: React.FC<CustomOrderStudioProps> = ({ onSuccess 
                   <button
                     key={type}
                     type="button"
-                    onClick={() => setItemType(type as CustomOrderRequest['itemType'])}
+                    onClick={() => setItemType(type)}
                     className={`p-3 text-left rounded-xl border text-xs font-medium transition-all cursor-pointer ${
                       itemType === type
                         ? 'border-[#164B3B] bg-[#164B3B]/5 text-[#164B3B] font-semibold ring-1 ring-[#164B3B]'
@@ -183,7 +178,7 @@ export const CustomOrderStudio: React.FC<CustomOrderStudioProps> = ({ onSuccess 
               <p className="text-xs text-[#29231F]/60 mb-3">
                 You may select multiple flora, or mail us your own dried bridal bouquet petals.
               </p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5">
                 {availableFlowers.map((flower) => {
                   const isChecked = selectedFlowers.includes(flower);
                   return (
@@ -213,7 +208,7 @@ export const CustomOrderStudio: React.FC<CustomOrderStudioProps> = ({ onSuccess 
                 </label>
                 <select
                   value={metalAccents}
-                  onChange={(e) => setMetalAccents(e.target.value as CustomOrderRequest['metalAccents'])}
+                  onChange={(e) => setMetalAccents(e.target.value)}
                   className="w-full px-3 py-2.5 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs text-[#29231F] focus:outline-none focus:border-[#164B3B]"
                 >
                   <option>24k Gold Leaf</option>
@@ -229,7 +224,7 @@ export const CustomOrderStudio: React.FC<CustomOrderStudioProps> = ({ onSuccess 
                 </label>
                 <select
                   value={resinBaseColor}
-                  onChange={(e) => setResinBaseColor(e.target.value as CustomOrderRequest['resinBaseColor'])}
+                  onChange={(e) => setResinBaseColor(e.target.value)}
                   className="w-full px-3 py-2.5 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs text-[#29231F] focus:outline-none focus:border-[#164B3B]"
                 >
                   <option>Crystal Clear</option>
@@ -358,7 +353,7 @@ export const CustomOrderStudio: React.FC<CustomOrderStudioProps> = ({ onSuccess 
                 <Sparkles className="w-4 h-4 text-[#C6A15B]" />
                 <span>The Creation Journey</span>
               </h3>
-              
+
               <div className="space-y-3 text-xs">
                 <div className="flex gap-3">
                   <span className="font-mono text-[#C6A15B] font-bold">01.</span>

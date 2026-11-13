@@ -5,10 +5,9 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateOrderSummary, estimateCustomOrderPrice, formatINR, FREE_SHIPPING_THRESHOLD } from './ecommerceLogic';
-import { CartItem, Product } from '../types';
+import { calculateOrderSummary, estimateCustomOrderPrice, formatINR, sortProducts } from './ecommerceLogic.js';
 
-const mockProduct: Product = {
+const mockProduct = {
   id: 'test-1',
   name: 'Test Resin Ring',
   subtitle: 'Subtitle',
@@ -33,8 +32,38 @@ const mockProduct: Product = {
   inStock: true
 };
 
+const sampleList = [
+  { ...mockProduct, id: 'unmade-001', name: 'Alpha Piece', price: 3000, rating: 4.8, reviewCount: 10, isBestSeller: false, isNewArrival: false },
+  { ...mockProduct, id: 'unmade-002', name: 'Beta Piece', price: 1500, rating: 4.9, reviewCount: 50, isBestSeller: true, isNewArrival: false },
+  { ...mockProduct, id: 'unmade-003', name: 'Gamma Piece', price: 4500, rating: 5.0, reviewCount: 20, isBestSeller: false, isNewArrival: true }
+];
+
+test('sortProducts sorts by price-asc correctly', () => {
+  const sorted = sortProducts(sampleList, 'price-asc');
+  assert.equal(sorted[0].name, 'Beta Piece'); // 1500
+  assert.equal(sorted[1].name, 'Alpha Piece'); // 3000
+  assert.equal(sorted[2].name, 'Gamma Piece'); // 4500
+});
+
+test('sortProducts sorts by price-desc correctly', () => {
+  const sorted = sortProducts(sampleList, 'price-desc');
+  assert.equal(sorted[0].name, 'Gamma Piece'); // 4500
+  assert.equal(sorted[1].name, 'Alpha Piece'); // 3000
+  assert.equal(sorted[2].name, 'Beta Piece'); // 1500
+});
+
+test('sortProducts sorts by newest correctly, placing new arrivals first', () => {
+  const sorted = sortProducts(sampleList, 'newest');
+  assert.equal(sorted[0].name, 'Gamma Piece'); // isNewArrival: true
+});
+
+test('sortProducts sorts by popularity prioritizing bestsellers and review metrics', () => {
+  const sorted = sortProducts(sampleList, 'popularity');
+  assert.equal(sorted[0].name, 'Beta Piece'); // isBestSeller: true
+});
+
 test('calculateOrderSummary calculates correct subtotal and applies shipping when under threshold', () => {
-  const items: CartItem[] = [
+  const items = [
     { product: mockProduct, quantity: 1 } // ₹2,000 (< ₹3,000)
   ];
   const summary = calculateOrderSummary(items);
@@ -47,7 +76,7 @@ test('calculateOrderSummary calculates correct subtotal and applies shipping whe
 });
 
 test('calculateOrderSummary grants free shipping when above ₹3,000', () => {
-  const items: CartItem[] = [
+  const items = [
     { product: mockProduct, quantity: 2 } // ₹4,000 (>= ₹3,000)
   ];
   const summary = calculateOrderSummary(items);
@@ -58,7 +87,7 @@ test('calculateOrderSummary grants free shipping when above ₹3,000', () => {
 });
 
 test('calculateOrderSummary applies FIRSTSTORY discount code correctly', () => {
-  const items: CartItem[] = [
+  const items = [
     { product: mockProduct, quantity: 2 } // ₹4,000
   ];
   const summary = calculateOrderSummary(items, 'FIRSTSTORY');

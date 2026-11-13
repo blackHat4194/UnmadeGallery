@@ -5,21 +5,14 @@
 
 import React from 'react';
 
-interface ResinArtImageProps {
-  type: string;
-  alt: string;
-  className?: string;
-  showShimmer?: boolean;
-}
-
-export const ResinArtImage: React.FC<ResinArtImageProps> = ({
+export const ResinArtImage = ({
   type,
   alt,
   className = 'w-full h-full',
   showShimmer = true
 }) => {
   return (
-    <div 
+    <div
       className={`relative overflow-hidden select-none bg-[#F7F3EA] flex items-center justify-center ${className}`}
       role="img"
       aria-label={alt}
@@ -40,10 +33,6 @@ export const ResinArtImage: React.FC<ResinArtImageProps> = ({
             </linearGradient>
             <filter id="resinDropShadow" x="-10%" y="-10%" width="120%" height="120%">
               <feDropShadow dx="0" dy="12" stdDeviation="16" floodColor="#29231F" floodOpacity="0.12" />
-            </filter>
-            <filter id="glassRefract" x="-5%" y="-5%" width="110%" height="110%">
-              <feGaussianBlur stdDeviation="1.5" result="blur" />
-              <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" />
             </filter>
           </defs>
 
@@ -90,7 +79,6 @@ export const ResinArtImage: React.FC<ResinArtImageProps> = ({
 
           {/* Preserved White & Cream Flower Florets */}
           <g fill="#FFFFFA" stroke="#D1C7B7" strokeWidth="0.8">
-            {/* Flower 1 */}
             <circle cx="195" cy="155" r="5" />
             <circle cx="190" cy="155" r="4.5" />
             <circle cx="200" cy="155" r="4.5" />
@@ -98,7 +86,6 @@ export const ResinArtImage: React.FC<ResinArtImageProps> = ({
             <circle cx="195" cy="160" r="4.5" />
             <circle cx="195" cy="155" r="1.5" fill="#E2C98F" />
 
-            {/* Flower 2 */}
             <circle cx="170" cy="188" r="4.5" />
             <circle cx="165" cy="188" r="4" />
             <circle cx="175" cy="188" r="4" />
@@ -106,7 +93,6 @@ export const ResinArtImage: React.FC<ResinArtImageProps> = ({
             <circle cx="170" cy="193" r="4" />
             <circle cx="170" cy="188" r="1.5" fill="#E2C98F" />
 
-            {/* Flower 3 */}
             <circle cx="225" cy="172" r="5" />
             <circle cx="220" cy="172" r="4.5" />
             <circle cx="230" cy="172" r="4.5" />
@@ -114,13 +100,12 @@ export const ResinArtImage: React.FC<ResinArtImageProps> = ({
             <circle cx="225" cy="177" r="4.5" />
             <circle cx="225" cy="172" r="1.5" fill="#E2C98F" />
 
-            {/* Miniature buds */}
             <circle cx="155" cy="168" r="3" />
             <circle cx="185" cy="225" r="3.5" />
             <circle cx="210" cy="215" r="3" />
           </g>
 
-          {/* Curvature & Glass Specular Highlight (Optical Resin Reflection) */}
+          {/* Curvature & Glass Specular Highlight */}
           <path
             d="M175,100 C155,145 140,210 150,270"
             fill="none"
@@ -155,23 +140,16 @@ export const ResinArtImage: React.FC<ResinArtImageProps> = ({
               <stop offset="70%" stopColor="#E8C87A" />
               <stop offset="100%" stopColor="#967228" />
             </linearGradient>
-            <filter id="softGlow">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
           </defs>
 
-          {/* Studio warm stone pedestal */}
           <rect width="400" height="400" fill="#F3EDE3" />
           <ellipse cx="200" cy="335" rx="110" ry="25" fill="#29231F" opacity="0.18" />
 
-          {/* Statement Resin Ring Hoop Silhouette */}
           <g>
             <circle cx="200" cy="190" r="115" fill="url(#emeraldBase)" stroke="#C6A15B" strokeWidth="3" />
             <circle cx="200" cy="190" r="55" fill="#F3EDE3" stroke="#967228" strokeWidth="2" />
           </g>
 
-          {/* Marbled Inks in Resin */}
           <path
             d="M110,140 C140,110 180,180 230,120 C270,80 300,160 310,210 C270,260 210,200 160,250 C120,290 100,200 110,140 Z"
             fill="#1E614D"
@@ -183,14 +161,12 @@ export const ResinArtImage: React.FC<ResinArtImageProps> = ({
             opacity="0.75"
           />
 
-          {/* Molten 24K Gold Dust & Veins */}
           <g stroke="url(#goldVein)" fill="none" strokeLinecap="round">
             <path d="M125,160 Q170,145 195,190 T265,140" strokeWidth="4.5" />
             <path d="M140,240 Q180,270 230,230 T285,250" strokeWidth="3.5" />
             <path d="M170,115 Q210,130 250,105" strokeWidth="2" />
           </g>
 
-          {/* Gold Micro-flocculation */}
           <g fill="#FFDF85">
             <circle cx="150" cy="170" r="3" />
             <circle cx="180" cy="155" r="2" />
@@ -203,11 +179,9 @@ export const ResinArtImage: React.FC<ResinArtImageProps> = ({
             <circle cx="130" cy="200" r="1.8" />
           </g>
 
-          {/* Titanium Ear Post finding */}
           <rect x="194" y="60" width="12" height="18" rx="3" fill="#D4AF37" />
           <circle cx="200" cy="69" r="3" fill="#29231F" />
 
-          {/* Glass Gloss Shimmer */}
           <path
             d="M135,120 A95,95 0 0,1 265,120"
             fill="none"
@@ -240,35 +214,26 @@ export const ResinArtImage: React.FC<ResinArtImageProps> = ({
             </radialGradient>
           </defs>
 
-          {/* Ambient Warm Gallery Desk Surface */}
           <rect width="400" height="400" fill="#F6F1EA" />
-          
-          {/* Deep Cast Shadow */}
           <polygon points="120,320 200,340 340,320 280,300" fill="#29231F" opacity="0.22" />
 
-          {/* Walnut Wooden Base */}
           <polygon points="80,310 200,335 320,310 200,285" fill="#3D2B1F" />
           <polygon points="80,310 200,335 200,345 80,320" fill="#2B1E15" />
           <polygon points="200,335 320,310 320,320 200,345" fill="#4E3727" />
 
-          {/* Preserved Floating Red Tea Rose Blossom (encased) */}
           <g id="encasedRose">
-            {/* Green sepals */}
             <path d="M190,265 C185,250 170,255 185,275" fill="#2E4A2A" />
             <path d="M210,265 C215,250 230,255 215,275" fill="#2E4A2A" />
 
-            {/* Outer Rose Petals */}
             <ellipse cx="200" cy="245" rx="36" ry="30" fill="url(#roseCore)" />
             <path d="M168,235 C175,210 200,210 205,230 C190,245 175,250 168,235 Z" fill="#991B2F" />
             <path d="M232,235 C225,210 200,210 195,230 C210,245 225,250 232,235 Z" fill="#881527" />
             <path d="M180,255 C190,265 210,265 220,255 C210,245 190,245 180,255 Z" fill="#BD253C" />
 
-            {/* Inner Rose Petal Core Swirls */}
             <circle cx="200" cy="235" r="14" fill="#690C1A" />
             <path d="M195,230 C198,225 205,225 205,232 C205,238 194,238 194,232" fill="none" stroke="#BD253C" strokeWidth="2.5" />
           </g>
 
-          {/* Champagne Gold Flakes Bedding under Rose */}
           <g fill="#DDBB72" opacity="0.9">
             <polygon points="170,285 178,280 175,290" />
             <polygon points="220,282 228,278 225,288" />
@@ -279,15 +244,12 @@ export const ResinArtImage: React.FC<ResinArtImageProps> = ({
             <circle cx="215" cy="295" r="2.5" />
           </g>
 
-          {/* Faceted Crystal Pyramid Form */}
-          {/* Left Facet */}
           <polygon
             points="200,85 85,305 200,325"
             fill="url(#pyrFaceLeft)"
             stroke="#EAE0D0"
             strokeWidth="1.5"
           />
-          {/* Right Facet */}
           <polygon
             points="200,85 200,325 315,305"
             fill="url(#pyrFaceRight)"
@@ -295,7 +257,6 @@ export const ResinArtImage: React.FC<ResinArtImageProps> = ({
             strokeWidth="1.5"
           />
 
-          {/* Central Apex & Edge Glint */}
           <line x1="200" y1="85" x2="200" y2="325" stroke="#FFFFFF" strokeWidth="3" opacity="0.75" />
           <line x1="200" y1="85" x2="85" y2="305" stroke="#FFFFFF" strokeWidth="2" opacity="0.85" />
           <circle cx="200" cy="85" r="4" fill="#FFFFFF" opacity="0.95" />
@@ -321,7 +282,6 @@ export const ResinArtImage: React.FC<ResinArtImageProps> = ({
           <rect width="400" height="400" fill="#F8F3EA" />
           <ellipse cx="200" cy="350" rx="75" ry="18" fill="#29231F" opacity="0.12" />
 
-          {/* Neoclassical Resin Arch Silhouette */}
           <g>
             <path
               d="M140,160 C140,110 170,90 200,90 C230,90 260,110 260,160 L260,310 C260,320 250,330 240,330 L160,330 C150,330 140,320 140,310 Z"
@@ -331,7 +291,6 @@ export const ResinArtImage: React.FC<ResinArtImageProps> = ({
             />
           </g>
 
-          {/* Suspended 24K Gold Leaf Ribbons */}
           <g fill="#FFF1B8" opacity="0.85">
             <path d="M170,140 Q190,160 185,185 T215,220 L210,230 Q180,200 175,160 Z" />
             <path d="M220,130 Q240,150 235,175 T240,240 L232,245 Q225,180 215,140 Z" />
@@ -341,12 +300,8 @@ export const ResinArtImage: React.FC<ResinArtImageProps> = ({
             <circle cx="190" cy="300" r="2" />
           </g>
 
-          {/* Antique Brass Textured Cap on top */}
           <path d="M130,95 C130,75 160,65 200,65 C240,65 270,75 270,95 Z" fill="url(#brassCap)" />
-          {/* Earring wire loop */}
           <circle cx="200" cy="50" r="14" fill="none" stroke="url(#brassCap)" strokeWidth="4" />
-
-          {/* Surface Light Glint */}
           <line x1="155" y1="120" x2="155" y2="300" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" opacity="0.6" />
         </svg>
       )}
@@ -370,25 +325,16 @@ export const ResinArtImage: React.FC<ResinArtImageProps> = ({
           <circle cx="200" cy="200" r="105" fill="none" stroke="url(#goldBezel)" strokeWidth="8" />
           <circle cx="200" cy="200" r="101" fill="url(#periwinkleGlow)" />
 
-          {/* Cast Shadow */}
           <ellipse cx="200" cy="330" rx="90" ry="18" fill="#29231F" opacity="0.12" />
 
-          {/* Hydrangea 4-Petal Floret (Pressed real look) */}
           <g id="hydrangeaFloret">
-            {/* Petal 1 Top */}
             <path d="M200,200 C170,150 180,120 200,120 C220,120 230,150 200,200 Z" fill="#7B88C4" opacity="0.82" />
-            {/* Petal 2 Right */}
             <path d="M200,200 C250,170 280,180 280,200 C280,220 250,230 200,200 Z" fill="#8C98D4" opacity="0.85" />
-            {/* Petal 3 Bottom */}
             <path d="M200,200 C230,250 220,280 200,280 C180,280 170,250 200,200 Z" fill="#7582BF" opacity="0.82" />
-            {/* Petal 4 Left */}
             <path d="M200,200 C150,230 120,220 120,200 C120,180 150,170 200,200 Z" fill="#9BA6DD" opacity="0.8" />
-            
-            {/* Central Pistil with Gold Accent */}
             <circle cx="200" cy="200" r="5" fill="#E8C87A" stroke="#C6A15B" strokeWidth="1" />
           </g>
 
-          {/* Floating gold dust particles */}
           <g fill="#D8B167">
             <circle cx="160" cy="155" r="2.5" />
             <circle cx="240" cy="160" r="3" />
@@ -397,7 +343,6 @@ export const ResinArtImage: React.FC<ResinArtImageProps> = ({
             <circle cx="200" cy="140" r="1.5" />
           </g>
 
-          {/* Domed Glass Reflection */}
           <path d="M140,150 A75,75 0 0,1 250,140" fill="none" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" opacity="0.65" />
         </svg>
       )}
@@ -420,10 +365,8 @@ export const ResinArtImage: React.FC<ResinArtImageProps> = ({
           <rect width="400" height="400" fill="#F7F2EB" />
           <ellipse cx="200" cy="330" rx="80" ry="16" fill="#29231F" opacity="0.14" />
 
-          {/* Ring Oval Bezel */}
           <ellipse cx="200" cy="190" rx="90" ry="110" fill="url(#ringOvalGlow)" stroke="url(#goldRing)" strokeWidth="8" />
 
-          {/* Queen Anne's Lace / Dried Wildflower Silhouette */}
           <g stroke="#918776" strokeWidth="1.5" strokeLinecap="round">
             <path d="M200,270 L200,160" />
             <path d="M200,200 L160,165" />
@@ -432,7 +375,6 @@ export const ResinArtImage: React.FC<ResinArtImageProps> = ({
             <path d="M200,180 L225,145" />
           </g>
 
-          {/* Tiny Dried Florets */}
           <g fill="#FFFFFF" stroke="#D9D0C3" strokeWidth="0.8">
             <circle cx="200" cy="145" r="3.5" />
             <circle cx="160" cy="160" r="3.5" />
@@ -443,7 +385,6 @@ export const ResinArtImage: React.FC<ResinArtImageProps> = ({
             <circle cx="210" cy="130" r="2.8" />
           </g>
 
-          {/* 24k Gold leaf sprinkles */}
           <g fill="#C6A15B">
             <circle cx="180" cy="220" r="2" />
             <circle cx="220" cy="210" r="2.5" />
@@ -451,7 +392,6 @@ export const ResinArtImage: React.FC<ResinArtImageProps> = ({
             <polygon points="205,230 212,225 210,234" />
           </g>
 
-          {/* Bezel Ring Band Suggestion */}
           <path d="M110,190 C70,190 70,240 110,260" fill="none" stroke="url(#goldRing)" strokeWidth="6" />
           <path d="M290,190 C330,190 330,240 290,260" fill="none" stroke="url(#goldRing)" strokeWidth="6" />
 
@@ -478,13 +418,11 @@ export const ResinArtImage: React.FC<ResinArtImageProps> = ({
           <rect width="400" height="400" fill="#F4EDE2" />
           <circle cx="200" cy="200" r="130" fill="url(#wallMedallion)" stroke="url(#brassFrame)" strokeWidth="7" />
 
-          {/* Monstera Leaf Botanical Cutout */}
           <g fill="#2D6A4F" opacity="0.85">
             <path d="M200,95 C140,110 130,200 170,280 C185,290 200,290 200,95 Z" />
             <path d="M200,95 C260,110 270,200 230,280 C215,290 200,290 200,95 Z" />
           </g>
 
-          {/* Leaf Cutouts / Fenestrations */}
           <g fill="#1B5543">
             <ellipse cx="165" cy="180" rx="8" ry="16" transform="rotate(-30 165 180)" />
             <ellipse cx="235" cy="180" rx="8" ry="16" transform="rotate(30 235 180)" />
@@ -492,10 +430,7 @@ export const ResinArtImage: React.FC<ResinArtImageProps> = ({
             <ellipse cx="225" cy="225" rx="6" ry="14" transform="rotate(40 225 225)" />
           </g>
 
-          {/* Liquid Gold Vein River through Medallion */}
           <path d="M195,80 Q215,160 190,240 T210,320" fill="none" stroke="#E5C378" strokeWidth="4" />
-
-          {/* Hanging Ring on Frame Top */}
           <circle cx="200" cy="65" r="12" fill="none" stroke="url(#brassFrame)" strokeWidth="4" />
         </svg>
       )}

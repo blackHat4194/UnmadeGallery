@@ -4,17 +4,13 @@
  */
 
 import React, { useState } from 'react';
-import { Mail, ArrowRight, ShieldCheck, Sparkles, HeartHandshake, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Sparkles, HeartHandshake, CheckCircle2 } from 'lucide-react';
 
-interface FooterProps {
-  onNavigate: (page: string) => void;
-}
-
-export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
+export const Footer = ({ onNavigate }) => {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = (e) => {
     e.preventDefault();
     if (!email || !email.includes('@')) return;
     setSubscribed(true);

@@ -6,16 +6,7 @@
 import React, { useState } from 'react';
 import { Search, ShoppingBag, Heart, User, ShieldCheck, Menu, X } from 'lucide-react';
 
-interface HeaderProps {
-  cartCount: number;
-  wishlistCount: number;
-  activePage: string;
-  onNavigate: (page: string, params?: Record<string, string>) => void;
-  onOpenCart: () => void;
-  onOpenSearch: () => void;
-}
-
-export const Header: React.FC<HeaderProps> = ({
+export const Header = ({
   cartCount,
   wishlistCount,
   activePage,
@@ -41,18 +32,18 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Main Navigation Row - Strictly adheres to 3-Zone Top Bar Contract */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-18 sm:h-20 flex items-center justify-between gap-2 sm:gap-4 md:gap-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4 md:gap-8">
         {/* Zone 1: Brand Wordmark (Single text element in Cormorant Garamond) */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center min-w-0">
           <button
             onClick={() => {
               onNavigate('home');
               setMobileMenuOpen(false);
             }}
-            className="text-left group cursor-pointer focus:outline-none"
+            className="text-left group cursor-pointer focus:outline-none truncate"
             aria-label="UNMADE GALLERY Home"
           >
-            <span className="font-serif text-lg sm:text-2xl md:text-3xl font-semibold tracking-[0.12em] sm:tracking-[0.18em] text-[#164B3B] uppercase transition-colors group-hover:text-[#C6A15B]">
+            <span className="font-serif text-[15px] sm:text-2xl md:text-3xl font-semibold tracking-[0.08em] sm:tracking-[0.18em] text-[#164B3B] uppercase transition-colors group-hover:text-[#C6A15B] whitespace-nowrap">
               UNMADE GALLERY
             </span>
           </button>
@@ -76,25 +67,25 @@ export const Header: React.FC<HeaderProps> = ({
         </nav>
 
         {/* Zone 3: Functional Interactive Affordances */}
-        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+        <div className="flex items-center gap-0.5 sm:gap-3 lg:gap-4 shrink-0">
           {/* Search Trigger */}
           <button
             onClick={onOpenSearch}
-            className="p-2 text-[#29231F] hover:text-[#164B3B] hover:bg-[#E8DFD0]/40 rounded-full transition-colors cursor-pointer"
+            className="p-1.5 sm:p-2 text-[#29231F] hover:text-[#164B3B] hover:bg-[#E8DFD0]/40 rounded-full transition-colors cursor-pointer"
             aria-label="Search resin art collection"
           >
-            <Search className="w-5 h-5 stroke-[1.6]" />
+            <Search className="w-[18px] h-[18px] sm:w-5 sm:h-5 stroke-[1.6]" />
           </button>
 
           {/* Wishlist Trigger */}
           <button
             onClick={() => onNavigate('account', { tab: 'wishlist' })}
-            className="relative p-2 text-[#29231F] hover:text-[#164B3B] hover:bg-[#E8DFD0]/40 rounded-full transition-colors cursor-pointer"
+            className="relative p-1.5 sm:p-2 text-[#29231F] hover:text-[#164B3B] hover:bg-[#E8DFD0]/40 rounded-full transition-colors cursor-pointer"
             aria-label={`View wishlist, ${wishlistCount} items`}
           >
-            <Heart className="w-5 h-5 stroke-[1.6]" />
+            <Heart className="w-[18px] h-[18px] sm:w-5 sm:h-5 stroke-[1.6]" />
             {wishlistCount > 0 && (
-              <span className="absolute top-1 right-1 w-4 h-4 bg-[#C6A15B] text-[#164B3B] font-bold text-[10px] rounded-full flex items-center justify-center">
+              <span className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 w-4 h-4 bg-[#C6A15B] text-[#164B3B] font-bold text-[10px] rounded-full flex items-center justify-center">
                 {wishlistCount}
               </span>
             )}
@@ -103,25 +94,29 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Account Trigger */}
           <button
             onClick={() => onNavigate('account')}
-            className={`p-2 rounded-full transition-colors cursor-pointer ${
+            className={`p-1.5 sm:p-2 rounded-full transition-colors cursor-pointer ${
               activePage === 'account'
                 ? 'text-[#164B3B] bg-[#E8DFD0]'
                 : 'text-[#29231F] hover:text-[#164B3B] hover:bg-[#E8DFD0]/40'
             }`}
             aria-label="Customer account and orders"
           >
-            <User className="w-5 h-5 stroke-[1.6]" />
+            <User className="w-[18px] h-[18px] sm:w-5 sm:h-5 stroke-[1.6]" />
           </button>
 
           {/* Shopping Bag Trigger with Cart Count */}
           <button
             onClick={onOpenCart}
-            className="relative flex items-center gap-2 px-3.5 py-2 bg-[#164B3B] text-[#F7F3EA] hover:bg-[#20634f] rounded-lg transition-all shadow-sm hover:shadow-md cursor-pointer shrink-0"
+            className="relative flex items-center gap-1 sm:gap-2 px-2 sm:px-3.5 py-1.5 sm:py-2 bg-[#164B3B] text-[#F7F3EA] hover:bg-[#20634f] rounded-lg transition-all shadow-sm hover:shadow-md cursor-pointer shrink-0 ml-0.5"
             aria-label={`Shopping bag with ${cartCount} items`}
           >
             <ShoppingBag className="w-4 h-4 stroke-[1.8]" />
             <span className="text-xs font-semibold tracking-wider">
-              {cartCount > 0 ? `${cartCount}` : 'Bag'}
+              {cartCount > 0 ? (
+                cartCount
+              ) : (
+                <span className="hidden sm:inline">Bag</span>
+              )}
             </span>
           </button>
 
@@ -143,10 +138,10 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Mobile Menu Hamburger */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 md:hidden text-[#29231F] hover:text-[#164B3B] rounded-lg transition-colors cursor-pointer"
+            className="p-1.5 md:hidden text-[#29231F] hover:text-[#164B3B] rounded-lg transition-colors cursor-pointer"
             aria-label="Toggle navigation menu"
           >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
       </div>

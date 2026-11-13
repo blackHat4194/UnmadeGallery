@@ -4,22 +4,12 @@
  */
 
 import React from 'react';
-import { ArrowRight, Sparkles, ShieldCheck, HeartHandshake, Star, Quote } from 'lucide-react';
-import { Product, CustomerReview } from '../types';
-import { ProductCard } from './ProductCard';
-import { ResinArtImage } from './ResinArtImage';
-import { CUSTOMER_REVIEWS, BRAND_VALUES } from '../data/products';
+import { ArrowRight, Sparkles, Star } from 'lucide-react';
+import { ProductCard } from './ProductCard.jsx';
+import { ResinArtImage } from './ResinArtImage.jsx';
+import { CUSTOMER_REVIEWS } from '../data/products.js';
 
-interface HomeViewProps {
-  products: Product[];
-  wishlistIds: string[];
-  onToggleWishlist: (productId: string) => void;
-  onAddToCart: (product: Product) => void;
-  onSelectProduct: (product: Product) => void;
-  onNavigate: (page: string, params?: Record<string, string>) => void;
-}
-
-export const HomeView: React.FC<HomeViewProps> = ({
+export const HomeView = ({
   products,
   wishlistIds,
   onToggleWishlist,
@@ -95,20 +85,18 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 </button>
               </div>
 
-              <div className="pt-6 border-t border-[#E8DFD0]/60 flex items-center justify-center lg:justify-start gap-8 text-xs text-[#29231F]/70">
+              <div className="pt-6 border-t border-[#E8DFD0]/60 grid grid-cols-3 gap-2 sm:gap-6 lg:flex lg:items-center lg:justify-start lg:gap-8 text-center lg:text-left text-xs text-[#29231F]/70">
                 <div>
-                  <span className="font-serif text-xl font-bold text-[#164B3B] block">100%</span>
-                  <span>Handcrafted Pours</span>
+                  <span className="font-serif text-lg sm:text-xl font-bold text-[#164B3B] block">100%</span>
+                  <span className="text-[11px] sm:text-xs">Handcrafted Pours</span>
                 </div>
-                <div className="w-px h-8 bg-[#E8DFD0]" />
-                <div>
-                  <span className="font-serif text-xl font-bold text-[#164B3B] block">72+ Hrs</span>
-                  <span>Slow Curing Cycle</span>
+                <div className="border-x border-[#E8DFD0] lg:border-none px-1 lg:px-0">
+                  <span className="font-serif text-lg sm:text-xl font-bold text-[#164B3B] block">72+ Hrs</span>
+                  <span className="text-[11px] sm:text-xs">Slow Curing</span>
                 </div>
-                <div className="w-px h-8 bg-[#E8DFD0]" />
                 <div>
-                  <span className="font-serif text-xl font-bold text-[#164B3B] block">UV Shield</span>
-                  <span>Optical Glass Clarity</span>
+                  <span className="font-serif text-lg sm:text-xl font-bold text-[#164B3B] block">UV Shield</span>
+                  <span className="text-[11px] sm:text-xs">Glass Clarity</span>
                 </div>
               </div>
             </div>
@@ -243,7 +231,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
               <p className="text-sm sm:text-base text-[#29231F]/80 leading-relaxed">
                 Unlike mass-manufactured jewellery, we reject moulds that produce identical clones. By respecting the natural variations of real botanical flora and allowing fluid dynamics to sculpt resin currents organically, we guarantee that the piece you wear has never existed before—and will never be repeated.
               </p>
-              
+
               <div className="grid grid-cols-2 gap-4 pt-4">
                 <div className="p-4 bg-[#F7F3EA] rounded-xl border border-[#E8DFD0]">
                   <p className="font-serif text-xl font-bold text-[#164B3B]">Slow Craft</p>

@@ -4,21 +4,20 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Header } from './components/Header';
-import { Footer } from './components/Footer';
-import { HomeView } from './components/HomeView';
-import { ShopView } from './components/ShopView';
-import { CustomOrderStudio } from './components/CustomOrderStudio';
-import { AboutView } from './components/AboutView';
-import { AccountView } from './components/AccountView';
-import { AdminDashboard } from './components/AdminDashboard';
-import { ProductDetailModal } from './components/ProductDetailModal';
-import { CartDrawer } from './components/CartDrawer';
-import { CheckoutModal } from './components/CheckoutModal';
-import { SearchModal } from './components/SearchModal';
-import { OrderConfirmationModal } from './components/OrderConfirmationModal';
+import { Header } from './components/Header.jsx';
+import { Footer } from './components/Footer.jsx';
+import { HomeView } from './components/HomeView.jsx';
+import { ShopView } from './components/ShopView.jsx';
+import { CustomOrderStudio } from './components/CustomOrderStudio.jsx';
+import { AboutView } from './components/AboutView.jsx';
+import { AccountView } from './components/AccountView.jsx';
+import { AdminDashboard } from './components/AdminDashboard.jsx';
+import { ProductDetailModal } from './components/ProductDetailModal.jsx';
+import { CartDrawer } from './components/CartDrawer.jsx';
+import { CheckoutModal } from './components/CheckoutModal.jsx';
+import { SearchModal } from './components/SearchModal.jsx';
+import { OrderConfirmationModal } from './components/OrderConfirmationModal.jsx';
 
-import { Product, CartItem, Order, CustomOrderRequest } from './types';
 import {
   getStoredProducts,
   saveStoredProducts,
@@ -31,26 +30,26 @@ import {
   updateStoredOrderStatus,
   getStoredCustomOrders,
   updateStoredCustomOrderStatus
-} from './lib/storage';
+} from './lib/storage.js';
 
 export default function App() {
   // Application Data States
-  const [products, setProducts] = useState<Product[]>(() => getStoredProducts());
-  const [cart, setCart] = useState<CartItem[]>(() => getStoredCart());
-  const [wishlist, setWishlist] = useState<string[]>(() => getStoredWishlist());
-  const [orders, setOrders] = useState<Order[]>(() => getStoredOrders());
-  const [customRequests, setCustomRequests] = useState<CustomOrderRequest[]>(() => getStoredCustomOrders());
+  const [products, setProducts] = useState(() => getStoredProducts());
+  const [cart, setCart] = useState(() => getStoredCart());
+  const [wishlist, setWishlist] = useState(() => getStoredWishlist());
+  const [orders, setOrders] = useState(() => getStoredOrders());
+  const [customRequests, setCustomRequests] = useState(() => getStoredCustomOrders());
 
   // Routing / View States
-  const [activePage, setActivePage] = useState<string>('home');
-  const [pageParams, setPageParams] = useState<Record<string, string>>({});
+  const [activePage, setActivePage] = useState('home');
+  const [pageParams, setPageParams] = useState({});
 
   // Modals & Drawers
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
+  const [confirmedOrder, setConfirmedOrder] = useState(null);
 
   // Sync state to URL params on mount if present
   useEffect(() => {
@@ -79,7 +78,7 @@ export default function App() {
   }, [wishlist]);
 
   // Navigation helper
-  const handleNavigate = (page: string, params: Record<string, string> = {}) => {
+  const handleNavigate = (page, params = {}) => {
     setSelectedProduct(null);
     setIsCartOpen(false);
     setActivePage(page);
@@ -93,7 +92,7 @@ export default function App() {
   };
 
   // Cart operations
-  const handleAddToCart = (product: Product, quantity: number = 1) => {
+  const handleAddToCart = (product, quantity = 1) => {
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
@@ -108,14 +107,14 @@ export default function App() {
     setIsCartOpen(true);
   };
 
-  const handleBuyNow = (product: Product, quantity: number = 1) => {
+  const handleBuyNow = (product, quantity = 1) => {
     handleAddToCart(product, quantity);
     setSelectedProduct(null);
     setIsCartOpen(false);
     setIsCheckoutOpen(true);
   };
 
-  const handleUpdateQuantity = (productId: string, quantity: number) => {
+  const handleUpdateQuantity = (productId, quantity) => {
     if (quantity <= 0) {
       handleRemoveFromCart(productId);
       return;
@@ -127,11 +126,11 @@ export default function App() {
     );
   };
 
-  const handleRemoveFromCart = (productId: string) => {
+  const handleRemoveFromCart = (productId) => {
     setCart((prev) => prev.filter((item) => item.product.id !== productId));
   };
 
-  const handleToggleWishlist = (productId: string) => {
+  const handleToggleWishlist = (productId) => {
     setWishlist((prev) => {
       if (prev.includes(productId)) {
         return prev.filter((id) => id !== productId);
@@ -141,7 +140,7 @@ export default function App() {
   };
 
   // Order Placement
-  const handleOrderSuccess = (newOrder: Order) => {
+  const handleOrderSuccess = (newOrder) => {
     saveStoredOrder(newOrder);
     setOrders((prev) => [newOrder, ...prev]);
     setCart([]);
@@ -151,24 +150,24 @@ export default function App() {
   };
 
   // Admin handlers
-  const handleUpdateProduct = (updated: Product) => {
+  const handleUpdateProduct = (updated) => {
     const next = products.map((p) => (p.id === updated.id ? updated : p));
     setProducts(next);
     saveStoredProducts(next);
   };
 
-  const handleAddProduct = (newProd: Product) => {
+  const handleAddProduct = (newProd) => {
     const next = [newProd, ...products];
     setProducts(next);
     saveStoredProducts(next);
   };
 
-  const handleUpdateOrderStatus = (orderId: string, status: Order['status']) => {
+  const handleUpdateOrderStatus = (orderId, status) => {
     const updatedOrders = updateStoredOrderStatus(orderId, status);
     setOrders(updatedOrders);
   };
 
-  const handleUpdateCustomStatus = (requestId: string, status: CustomOrderRequest['status']) => {
+  const handleUpdateCustomStatus = (requestId, status) => {
     const updatedCustom = updateStoredCustomOrderStatus(requestId, status);
     setCustomRequests(updatedCustom);
   };
@@ -229,7 +228,7 @@ export default function App() {
 
             {activePage === 'custom' && (
               <CustomOrderStudio
-                onSuccess={(id) => {
+                onSuccess={() => {
                   setCustomRequests(getStoredCustomOrders());
                 }}
               />
@@ -241,7 +240,7 @@ export default function App() {
 
             {activePage === 'account' && (
               <AccountView
-                initialTab={(pageParams.tab as any) || 'orders'}
+                initialTab={pageParams.tab || 'orders'}
                 orders={orders}
                 wishlistIds={wishlist}
                 allProducts={products}
@@ -305,7 +304,7 @@ export default function App() {
       <OrderConfirmationModal
         order={confirmedOrder}
         onClose={() => setConfirmedOrder(null)}
-        onViewOrderInAccount={(order) => {
+        onViewOrderInAccount={() => {
           setConfirmedOrder(null);
           handleNavigate('account', { tab: 'orders' });
         }}
