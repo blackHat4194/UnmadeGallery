@@ -27,6 +27,7 @@ import {
   buildProductRecord,
   validateProductInput
 } from './lib/ecommerceLogic.js';
+import { apiUrl } from './lib/api.js';
 import {
   getStoredProducts,
   saveStoredProducts,
@@ -69,27 +70,47 @@ export default function App() {
 
     const loadGalleryData = async () => {
       try {
-        const res = await fetch('/api/gallery-data');
-        if (!res.ok) return;
-        const data = await res.json();
-        if (cancelled) return;
+        const [galleryRes, ordersRes, customRes] = await Promise.all([
+          fetch(apiUrl('/api/gallery-data')),
+          fetch(apiUrl('/api/orders')),
+          fetch(apiUrl('/api/custom-orders'))
+        ]);
 
-        if (Array.isArray(data.products)) {
-          setProducts(data.products);
-          saveStoredProducts(data.products);
-          if (typeof window !== 'undefined') {
-            const pid = new URLSearchParams(window.location.search).get('productId');
-            if (pid) {
-              const found = data.products.find((p) => p.id === pid);
-              if (found) setSelectedProduct(found);
+        if (galleryRes.ok) {
+          const data = await galleryRes.json();
+          if (!cancelled) {
+            if (Array.isArray(data.products)) {
+              setProducts(data.products);
+              saveStoredProducts(data.products);
+              if (typeof window !== 'undefined') {
+                const pid = new URLSearchParams(window.location.search).get('productId');
+                if (pid) {
+                  const found = data.products.find((p) => p.id === pid);
+                  if (found) setSelectedProduct(found);
+                }
+              }
             }
+            if (Array.isArray(data.collections)) setCollections(data.collections);
+            if (data.storyShowcase) setStoryShowcase(data.storyShowcase);
+            if (Array.isArray(data.reviews)) setReviews(data.reviews);
           }
         }
-        if (Array.isArray(data.collections)) setCollections(data.collections);
-        if (data.storyShowcase) setStoryShowcase(data.storyShowcase);
-        if (Array.isArray(data.reviews)) setReviews(data.reviews);
+
+        if (ordersRes.ok && !cancelled) {
+          const ordData = await ordersRes.json();
+          if (Array.isArray(ordData.orders)) {
+            setOrders(ordData.orders);
+          }
+        }
+
+        if (customRes.ok && !cancelled) {
+          const custData = await customRes.json();
+          if (Array.isArray(custData.customOrders)) {
+            setCustomRequests(custData.customOrders);
+          }
+        }
       } catch {
-        // Fallback smoothly to local bundled products.js data if API unavailable
+        // Fallback smoothly to local bundled data if backend API is unavailable
       }
     };
 
@@ -184,14 +205,23 @@ export default function App() {
     });
   };
 
-  // Order Placement
-  const handleOrderSuccess = (newOrder) => {
+  // Order Placement (persists to MERN backend + local state)
+  const handleOrderSuccess = async (newOrder) => {
     saveStoredOrder(newOrder);
     setOrders((prev) => [newOrder, ...prev]);
     setCart([]);
     setIsCheckoutOpen(false);
     setSelectedProduct(null);
     setConfirmedOrder(newOrder);
+    try {
+      await fetch(apiUrl('/api/orders'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newOrder)
+      });
+    } catch {
+      // Order already saved in local state/storage as fallback
+    }
   };
 
   // Helper to apply galleryData payload from server
@@ -220,7 +250,7 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`/api/products/${encodeURIComponent(productId)}`, {
+      const res = await fetch(apiUrl(`/api/products/${encodeURIComponent(productId)}`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(validation.sanitized)
@@ -250,7 +280,7 @@ export default function App() {
     }
 
     try {
-      const res = await fetch('/api/products', {
+      const res = await fetch(apiUrl('/api/products'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(validation.sanitized)
@@ -273,7 +303,7 @@ export default function App() {
 
   const handleDeleteProduct = async (productId) => {
     try {
-      const res = await fetch(`/api/products/${encodeURIComponent(productId)}`, {
+      const res = await fetch(apiUrl(`/api/products/${encodeURIComponent(productId)}`), {
         method: 'DELETE'
       });
       const json = await res.json();
@@ -287,14 +317,34 @@ export default function App() {
     }
   };
 
-  const handleUpdateOrderStatus = (orderId, status) => {
+  const handleUpdateOrderStatus = async (orderId, status) => {
     const updatedOrders = updateStoredOrderStatus(orderId, status);
     setOrders(updatedOrders);
+    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status } : o)));
+    try {
+      await fetch(apiUrl(`/api/orders/${encodeURIComponent(orderId)}/status`), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+    } catch {
+      // Local state already updated
+    }
   };
 
-  const handleUpdateCustomStatus = (requestId, status) => {
+  const handleUpdateCustomStatus = async (requestId, status) => {
     const updatedCustom = updateStoredCustomOrderStatus(requestId, status);
     setCustomRequests(updatedCustom);
+    setCustomRequests((prev) => prev.map((c) => (c.id === requestId ? { ...c, status } : c)));
+    try {
+      await fetch(apiUrl(`/api/custom-orders/${encodeURIComponent(requestId)}/status`), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+    } catch {
+      // Local state already updated
+    }
   };
 
   // Total cart item count
@@ -357,8 +407,12 @@ export default function App() {
 
             {activePage === 'custom' && (
               <CustomOrderStudio
-                onSuccess={() => {
-                  setCustomRequests(getStoredCustomOrders());
+                onSuccess={(newRequest) => {
+                  if (newRequest && typeof newRequest === 'object') {
+                    setCustomRequests((prev) => [newRequest, ...prev]);
+                  } else {
+                    setCustomRequests(getStoredCustomOrders());
+                  }
                 }}
               />
             )}

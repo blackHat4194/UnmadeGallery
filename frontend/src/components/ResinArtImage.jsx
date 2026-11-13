@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { resolveMediaUrl } from '../lib/api.js';
 
 export const ResinArtImage = ({
   type,
@@ -18,7 +19,8 @@ export const ResinArtImage = ({
     setImgFailed(false);
   }, [imageUrl]);
 
-  const showUploadedPhoto = Boolean(imageUrl) && !imgFailed;
+  const resolvedUrl = resolveMediaUrl(imageUrl);
+  const showUploadedPhoto = Boolean(resolvedUrl) && !imgFailed;
 
   return (
     <div
@@ -28,7 +30,7 @@ export const ResinArtImage = ({
     >
       {showUploadedPhoto ? (
         <img
-          src={imageUrl}
+          src={resolvedUrl}
           alt={alt}
           onError={() => setImgFailed(true)}
           className="w-full h-full object-cover"

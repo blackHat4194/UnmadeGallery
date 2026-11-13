@@ -4,8 +4,9 @@
  */
 
 import React, { useState } from 'react';
-import { Package, Heart, MapPin, User, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { Package, Heart, MapPin, User, CheckCircle2, ShieldCheck, LogIn, LogOut } from 'lucide-react';
 import { formatINR } from '../lib/ecommerceLogic.js';
+import { apiUrl } from '../lib/api.js';
 import { ResinArtImage } from './ResinArtImage.jsx';
 import { getStoredUserProfile, saveStoredUserProfile } from '../lib/storage.js';
 
@@ -22,14 +23,75 @@ export const AccountView = ({
   const [profile, setProfile] = useState(getStoredUserProfile());
   const [selectedOrder, setSelectedOrder] = useState(orders[0] || null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [authMode, setAuthMode] = useState('login');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authName, setAuthName] = useState('');
+  const [authFeedback, setAuthFeedback] = useState(null);
+  const [isSignedIn, setIsSignedIn] = useState(() => Boolean(typeof window !== 'undefined' && localStorage.getItem('unmade_jwt_token')));
 
   const wishlistedProducts = allProducts.filter((p) => wishlistIds.includes(p.id));
 
-  const handleSaveProfile = (e) => {
+  const handleSaveProfile = async (e) => {
     e.preventDefault();
     saveStoredUserProfile(profile);
+    try {
+      await fetch(apiUrl('/api/auth/profile'), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(profile)
+      });
+    } catch {
+      // Local profile still saved
+    }
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2000);
+  };
+
+  const handleAuthSubmit = async (e) => {
+    e.preventDefault();
+    setAuthFeedback(null);
+    try {
+      const endpoint = authMode === 'register' ? '/api/auth/register' : '/api/auth/login';
+      const payload =
+        authMode === 'register'
+          ? { name: authName, email: authEmail, password: authPassword }
+          : { email: authEmail, password: authPassword };
+      const res = await fetch(apiUrl(endpoint), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAuthFeedback({ type: 'error', text: data.error || 'Authentication failed.' });
+        return;
+      }
+      if (data.token && typeof window !== 'undefined') {
+        localStorage.setItem('unmade_jwt_token', data.token);
+      }
+      if (data.user) {
+        const nextProfile = { ...profile, ...data.user };
+        setProfile(nextProfile);
+        saveStoredUserProfile(nextProfile);
+      }
+      setIsSignedIn(true);
+      setAuthPassword('');
+      setAuthFeedback({
+        type: 'success',
+        text: authMode === 'register' ? 'Collector account created & signed in.' : 'Signed in successfully.'
+      });
+    } catch {
+      setAuthFeedback({ type: 'error', text: 'Unable to reach authentication server.' });
+    }
+  };
+
+  const handleSignOut = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('unmade_jwt_token');
+    }
+    setIsSignedIn(false);
+    setAuthFeedback({ type: 'success', text: 'Signed out of collector session.' });
   };
 
   const statusSteps = [
@@ -120,7 +182,7 @@ export const AccountView = ({
           }`}
         >
           <User className="w-4 h-4" />
-          <span>Profile Details</span>
+          <span>Profile &amp; Account</span>
         </button>
       </div>
 
@@ -387,48 +449,147 @@ export const AccountView = ({
         </div>
       )}
 
-      {/* Tab: Profile Details */}
+      {/* Tab: Profile Details & Collector Auth */}
       {activeTab === 'profile' && (
-        <div className="max-w-2xl bg-white p-6 sm:p-8 rounded-2xl border border-[#E8DFD0] shadow-sm">
-          <h2 className="font-serif text-xl font-medium text-[#29231F] mb-4">
-            Personal Information
-          </h2>
-          <form onSubmit={handleSaveProfile} className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-[#29231F]/70 mb-1">Full Name</label>
-              <input
-                type="text"
-                value={profile.name}
-                onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
-              />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          <div className="lg:col-span-7 bg-white p-6 sm:p-8 rounded-2xl border border-[#E8DFD0] shadow-sm">
+            <h2 className="font-serif text-xl font-medium text-[#29231F] mb-4">
+              Personal Information
+            </h2>
+            <form onSubmit={handleSaveProfile} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-[#29231F]/70 mb-1">Full Name</label>
+                <input
+                  type="text"
+                  value={profile.name}
+                  onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                  className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-[#29231F]/70 mb-1">Email Address</label>
+                <input
+                  type="email"
+                  value={profile.email}
+                  onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                  className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-[#29231F]/70 mb-1">Phone Number</label>
+                <input
+                  type="tel"
+                  value={profile.phone}
+                  onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                  className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
+                />
+              </div>
+              <button
+                type="submit"
+                className="px-6 py-2.5 bg-[#164B3B] text-[#F7F3EA] text-xs font-semibold rounded-lg hover:bg-[#20634f] transition-colors cursor-pointer"
+              >
+                Save Profile Changes
+              </button>
+              {saveSuccess && <span className="ml-3 text-xs text-emerald-700 font-semibold">Profile updated!</span>}
+            </form>
+          </div>
+
+          <div className="lg:col-span-5 bg-white p-6 sm:p-8 rounded-2xl border border-[#E8DFD0] shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-serif text-xl font-medium text-[#29231F]">
+                Collector Account Access
+              </h2>
+              {isSignedIn && (
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="flex items-center gap-1 text-xs font-semibold text-red-700 hover:underline cursor-pointer"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Sign Out</span>
+                </button>
+              )}
             </div>
-            <div>
-              <label className="block text-xs font-medium text-[#29231F]/70 mb-1">Email Address</label>
-              <input
-                type="email"
-                value={profile.email}
-                onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
-              />
+
+            {authFeedback && (
+              <div
+                className={`p-3 rounded-lg text-xs border ${
+                  authFeedback.type === 'error'
+                    ? 'bg-red-50 border-red-200 text-red-700'
+                    : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                }`}
+              >
+                {authFeedback.text}
+              </div>
+            )}
+
+            <div className="flex gap-2 p-1 bg-[#F7F3EA] rounded-lg border border-[#E8DFD0] text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setAuthMode('login')}
+                className={`flex-1 py-1.5 rounded-md cursor-pointer ${
+                  authMode === 'login' ? 'bg-white text-[#164B3B] shadow-xs' : 'text-[#29231F]/70'
+                }`}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => setAuthMode('register')}
+                className={`flex-1 py-1.5 rounded-md cursor-pointer ${
+                  authMode === 'register' ? 'bg-white text-[#164B3B] shadow-xs' : 'text-[#29231F]/70'
+                }`}
+              >
+                Register
+              </button>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-[#29231F]/70 mb-1">Phone Number</label>
-              <input
-                type="tel"
-                value={profile.phone}
-                onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
-              />
-            </div>
-            <button
-              type="submit"
-              className="px-6 py-2.5 bg-[#164B3B] text-[#F7F3EA] text-xs font-semibold rounded-lg hover:bg-[#20634f] transition-colors cursor-pointer"
-            >
-              Save Profile Changes
-            </button>
-            {saveSuccess && <span className="ml-3 text-xs text-emerald-700 font-semibold">Profile updated!</span>}
-          </form>
+
+            <form onSubmit={handleAuthSubmit} className="space-y-3">
+              {authMode === 'register' && (
+                <div>
+                  <label className="block text-xs font-medium text-[#29231F]/70 mb-1">Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={authName}
+                    onChange={(e) => setAuthName(e.target.value)}
+                    placeholder="Your name"
+                    className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-medium text-[#29231F]/70 mb-1">Email</label>
+                <input
+                  type="email"
+                  required
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                  placeholder="collector@example.com"
+                  className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-[#29231F]/70 mb-1">Password</label>
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  placeholder="Min 6 characters"
+                  className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full py-2.5 bg-[#164B3B] text-[#F7F3EA] text-xs font-semibold rounded-lg hover:bg-[#20634f] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>{authMode === 'register' ? 'Create Account' : 'Sign In'}</span>
+              </button>
+            </form>
+          </div>
         </div>
       )}
     </div>

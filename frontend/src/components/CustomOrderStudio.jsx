@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { Sparkles, CheckCircle2, ArrowRight, ShieldCheck } from 'lucide-react';
 import { estimateCustomOrderPrice, formatINR } from '../lib/ecommerceLogic.js';
+import { apiUrl } from '../lib/api.js';
 import { saveStoredCustomOrder } from '../lib/storage.js';
 
 export const CustomOrderStudio = ({ onSuccess }) => {
@@ -51,7 +52,7 @@ export const CustomOrderStudio = ({ onSuccess }) => {
     hasPersonalizedText: personalizedText.trim().length > 0
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg(null);
 
@@ -79,9 +80,18 @@ export const CustomOrderStudio = ({ onSuccess }) => {
     };
 
     saveStoredCustomOrder(newRequest);
+    try {
+      await fetch(apiUrl('/api/custom-orders'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newRequest)
+      });
+    } catch {
+      // Saved in localStorage fallback
+    }
     setSubmittedId(randomId);
     setIsSubmitted(true);
-    onSuccess(randomId);
+    onSuccess(newRequest);
   };
 
   return (
