@@ -9,6 +9,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig(() => {
   return {
     root: path.resolve(__dirname, 'frontend'),
+    publicDir: path.resolve(__dirname, 'public'),
     envDir: __dirname,
     plugins: [react(), tailwindcss()],
     resolve: {

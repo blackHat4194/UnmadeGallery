@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { ShieldCheck, Lock, ArrowLeft, LogOut, Sparkles } from 'lucide-react';
+import { ShieldCheck, Lock, ArrowLeft, LogOut } from 'lucide-react';
 import { apiFetch, setAuthToken } from '../lib/api.js';
 
 export const AdminLoginGate = ({ currentUser, onAuthSuccess, onLogout, onBackToStore }) => {
@@ -51,8 +51,12 @@ export const AdminLoginGate = ({ currentUser, onAuthSuccess, onLogout, onBackToS
       <div className="w-full max-w-md bg-white rounded-2xl border border-[#E8DFD0] shadow-xl p-6 sm:p-8 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#164B3B] border border-[#C6A15B] flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-[#C6A15B]" />
+            <div className="w-10 h-10 rounded-xl bg-[#F7F3EA] border border-[#C6A15B]/60 p-1.5 flex items-center justify-center shrink-0">
+              <img
+                src="/assets/aistudio/UnmadeGallary_logo_a9081e82.png"
+                alt="UNMADE GALLERY Monogram"
+                className="w-full h-full object-contain"
+              />
             </div>
             <div>
               <p className="font-serif text-lg font-semibold text-[#164B3B] tracking-wide">

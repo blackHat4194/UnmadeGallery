@@ -12,7 +12,25 @@ import { createBackendApp, initializeBackend } from './backend/app.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PORT = Number(process.env.PORT || 3000);
+const PREFERRED_PORT =
+  process.env.NODE_ENV !== 'production'
+    ? Number(process.env.APP_PORT || 3000)
+    : Number(process.env.APP_PORT || process.env.PORT || 3000);
+
+function listenOnPort(app, port) {
+  return new Promise((resolve, reject) => {
+    const server = app.listen(port, '0.0.0.0', () => resolve({ server, port }));
+    server.on('error', (err) => {
+      if (err?.code === 'EADDRINUSE' && port !== 3000) {
+        console.warn(`Port ${port} is already in use; falling back to port 3000.`);
+        const fallback = app.listen(3000, '0.0.0.0', () => resolve({ server: fallback, port: 3000 }));
+        fallback.on('error', reject);
+        return;
+      }
+      reject(err);
+    });
+  });
+}
 
 async function startUnifiedServer() {
   const dbStatus = await initializeBackend();
@@ -103,11 +121,13 @@ export class ErrorOverlay {}
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(
-      `UNMADE GALLERY server listening on http://localhost:${PORT} (storage: ${dbStatus?.mode || 'ready'})`
-    );
-  });
+  const { port: boundPort } = await listenOnPort(app, PREFERRED_PORT);
+  console.log(
+    `UNMADE GALLERY server listening on http://localhost:${boundPort} (storage: ${dbStatus?.mode || 'ready'})`
+  );
 }
 
-startUnifiedServer();
+startUnifiedServer().catch((err) => {
+  console.error('Failed to start UNMADE GALLERY server:', err);
+  process.exit(1);
+});

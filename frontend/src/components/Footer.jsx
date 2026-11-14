@@ -65,12 +65,23 @@ export const Footer = ({ onNavigate, isAdmin = false }) => {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 py-14 border-b border-[#3d342e]">
           {/* Brand Column */}
           <div className="md:col-span-4">
-            <span className="font-serif text-2xl font-semibold tracking-[0.2em] text-[#F7F3EA] uppercase">
-              UNMADE GALLERY
-            </span>
-            <p className="text-xs tracking-widest text-[#C6A15B] uppercase mt-1 font-medium">
-              Handmade Resin Art &amp; Botanical Keepsakes
-            </p>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-[#F7F3EA] border border-[#C6A15B]/50 p-1.5 flex items-center justify-center shrink-0 shadow-sm">
+                <img
+                  src="/assets/aistudio/UnmadeGallary_logo_a9081e82.png"
+                  alt="UNMADE GALLERY Logo"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <div>
+                <span className="font-serif text-2xl font-semibold tracking-[0.2em] text-[#F7F3EA] uppercase block leading-tight">
+                  UNMADE GALLERY
+                </span>
+                <p className="text-xs tracking-widest text-[#C6A15B] uppercase mt-0.5 font-medium">
+                  Handmade Resin Art &amp; Botanical Keepsakes
+                </p>
+              </div>
+            </div>
             <p className="text-sm text-[#E8DFD0]/70 mt-4 leading-relaxed max-w-sm">
               We bridge organic impermanence and everlasting sculptural form. Thoughtfully crafted in our artisanal studio for collectors who cherish the tactile poetry of nature.
             </p>

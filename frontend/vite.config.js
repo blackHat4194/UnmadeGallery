@@ -10,6 +10,7 @@ export default defineConfig(() => {
   const apiTarget = process.env.VITE_API_URL || 'http://localhost:5000';
 
   return {
+    publicDir: path.resolve(__dirname, '..', 'public'),
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

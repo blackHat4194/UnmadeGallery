@@ -35,17 +35,22 @@ export const Header = ({
 
       {/* Main Navigation Row - Strictly adheres to 3-Zone Top Bar Contract */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4 md:gap-8">
-        {/* Zone 1: Brand Wordmark (Single text element in Cormorant Garamond) */}
+        {/* Zone 1: Brand Monogram + Wordmark */}
         <div className="flex items-center min-w-0">
           <button
             onClick={() => {
               onNavigate('home');
               setMobileMenuOpen(false);
             }}
-            className="text-left group cursor-pointer focus:outline-none truncate"
+            className="flex items-center gap-2 sm:gap-3 text-left group cursor-pointer focus:outline-none min-w-0"
             aria-label="UNMADE GALLERY Home"
           >
-            <span className="font-serif text-[15px] sm:text-2xl md:text-3xl font-semibold tracking-[0.08em] sm:tracking-[0.18em] text-[#164B3B] uppercase transition-colors group-hover:text-[#C6A15B] whitespace-nowrap">
+            <img
+              src="/assets/aistudio/UnmadeGallary_logo_a9081e82.png"
+              alt="UNMADE GALLERY Monogram"
+              className="h-8 sm:h-11 w-auto object-contain shrink-0 transition-transform duration-200 group-hover:scale-105"
+            />
+            <span className="font-serif text-[14px] sm:text-2xl md:text-[26px] font-semibold tracking-[0.08em] sm:tracking-[0.16em] text-[#164B3B] uppercase transition-colors group-hover:text-[#C6A15B] whitespace-nowrap truncate">
               UNMADE GALLERY
             </span>
           </button>
