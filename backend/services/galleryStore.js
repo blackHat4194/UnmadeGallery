@@ -14,6 +14,7 @@ import { Order } from '../models/Order.js';
 import { CustomOrder } from '../models/CustomOrder.js';
 import { User } from '../models/User.js';
 import { signAuthToken } from '../utils/jwt.js';
+import { clearUserCart } from './userCollectionStore.js';
 import {
   INITIAL_PRODUCTS,
   CUSTOMER_REVIEWS,
@@ -435,11 +436,17 @@ export async function createOrder(orderPayload, user = null) {
 
   if (getStorageMode() === 'mongodb') {
     const created = await Order.create(record);
+    if (user?.id) {
+      await clearUserCart(user.id);
+    }
     return stripMongoFields(created);
   }
   const current = await getOrders();
   const next = [record, ...current];
   await writeJsonFile(ORDERS_JSON_PATH, next);
+  if (user?.id) {
+    await clearUserCart(user.id);
+  }
   return record;
 }
 

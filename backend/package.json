@@ -8,7 +8,7 @@
     "dev": "node --watch server.js",
     "start": "node server.js",
     "seed": "node seed.js",
-    "test": "node --test utils/productHelpers.test.js routes/galleryRoutes.test.js"
+    "test": "node --test --test-concurrency=1 utils/productHelpers.test.js routes/galleryRoutes.test.js routes/wishlistCartRoutes.test.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

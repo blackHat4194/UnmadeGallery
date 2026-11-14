@@ -110,6 +110,29 @@ export const orderCreateSchema = z
   })
   .strip();
 
+export const cartAddItemSchema = z
+  .object({
+    productId: z.string().trim().min(1, 'Product ID is required.').max(120, 'Invalid product ID.'),
+    quantity: z
+      .number({ message: 'Quantity must be a whole number.' })
+      .int('Quantity must be a whole number.')
+      .min(1, 'Quantity must be at least 1.')
+      .max(50, 'Maximum 50 units per creation.')
+      .optional()
+      .default(1)
+  })
+  .strip();
+
+export const cartUpdateItemSchema = z
+  .object({
+    quantity: z
+      .number({ message: 'Quantity must be a whole number.' })
+      .int('Quantity must be a whole number.')
+      .min(0, 'Quantity cannot be negative.')
+      .max(50, 'Maximum 50 units per creation.')
+  })
+  .strip();
+
 export function validateBody(schema) {
   return (req, res, next) => {
     const parsed = schema.safeParse(req.body || {});

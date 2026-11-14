@@ -15,7 +15,6 @@ const userSchema = new mongoose.Schema(
     city: { type: String, default: '' },
     state: { type: String, default: '' },
     pincode: { type: String, default: '' },
-    wishlist: { type: [String], default: [] },
     role: { type: String, enum: ['customer', 'admin'], default: 'customer' },
     tokenVersion: { type: Number, default: 0 },
     lastLoginAt: { type: Date }

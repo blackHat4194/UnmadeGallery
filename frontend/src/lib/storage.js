@@ -7,12 +7,23 @@ import { INITIAL_PRODUCTS } from '../data/products.js';
 
 const STORAGE_KEYS = {
   PRODUCTS: 'unmade_products_v1',
-  CART: 'unmade_cart_v1',
-  WISHLIST: 'unmade_wishlist_v1',
   ORDERS: 'unmade_orders_v1',
   CUSTOM_ORDERS: 'unmade_custom_orders_v1',
   USER: 'unmade_user_profile_v1'
 };
+
+const LEGACY_COLLECTION_KEYS = ['unmade_cart_v1', 'unmade_wishlist_v1'];
+
+export function purgeLegacyWishlistCartStorage() {
+  if (typeof window === 'undefined') return;
+  try {
+    for (const key of LEGACY_COLLECTION_KEYS) {
+      localStorage.removeItem(key);
+    }
+  } catch {
+    // ignore storage access errors
+  }
+}
 
 export const EMPTY_USER_PROFILE = {
   name: '',
@@ -41,36 +52,6 @@ export function getStoredProducts() {
 export function saveStoredProducts(products) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
-}
-
-export function getStoredCart() {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.CART);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-export function saveStoredCart(cart) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(cart));
-}
-
-export function getStoredWishlist() {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.WISHLIST);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-export function saveStoredWishlist(wishlist) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(STORAGE_KEYS.WISHLIST, JSON.stringify(wishlist));
 }
 
 export function getStoredOrders() {
@@ -156,4 +137,5 @@ export function clearPrivateSessionStorage() {
   localStorage.removeItem(STORAGE_KEYS.ORDERS);
   localStorage.removeItem(STORAGE_KEYS.CUSTOM_ORDERS);
   localStorage.removeItem(STORAGE_KEYS.USER);
+  purgeLegacyWishlistCartStorage();
 }

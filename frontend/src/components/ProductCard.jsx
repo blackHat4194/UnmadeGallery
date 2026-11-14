@@ -17,11 +17,13 @@ export const ProductCard = ({
 }) => {
   const [justAdded, setJustAdded] = useState(false);
 
-  const handleQuickAdd = (e) => {
+  const handleQuickAdd = async (e) => {
     e.stopPropagation();
-    onAddToCart(product, e);
-    setJustAdded(true);
-    setTimeout(() => setJustAdded(false), 1600);
+    const result = await onAddToCart(product, e);
+    if (result?.ok) {
+      setJustAdded(true);
+      setTimeout(() => setJustAdded(false), 1600);
+    }
   };
 
   return (

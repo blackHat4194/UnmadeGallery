@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Heart, ShoppingBag, ShieldCheck, Sparkles, Clock, Check, ArrowRight } from 'lucide-react';
 import { ResinArtImage } from './ResinArtImage.jsx';
 import { formatINR } from '../lib/ecommerceLogic.js';
@@ -21,19 +21,43 @@ export const ProductDetailModal = ({
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('specs');
   const [addedNotice, setAddedNotice] = useState(false);
+  const [actionError, setActionError] = useState(null);
+
+  useEffect(() => {
+    setActionError(null);
+    setAddedNotice(false);
+    setQuantity(1);
+  }, [product.id]);
 
   const relatedProducts = allProducts
     .filter((p) => p.id !== product.id && (p.category === product.category || p.collection === product.collection))
     .slice(0, 3);
 
-  const handleAdd = () => {
-    onAddToCart(product, quantity);
-    setAddedNotice(true);
-    setTimeout(() => setAddedNotice(false), 2000);
+  const handleAdd = async () => {
+    setActionError(null);
+    const result = await onAddToCart(product, quantity);
+    if (result?.ok) {
+      setAddedNotice(true);
+      setTimeout(() => setAddedNotice(false), 2000);
+    } else if (result?.error && !result?.requiresAuth) {
+      setActionError(result.error);
+    }
   };
 
-  const handleBuy = () => {
-    onBuyNow(product, quantity);
+  const handleBuy = async () => {
+    setActionError(null);
+    const result = await onBuyNow(product, quantity);
+    if (result && !result.ok && !result.requiresAuth && result.error) {
+      setActionError(result.error);
+    }
+  };
+
+  const handleWishlistClick = async () => {
+    setActionError(null);
+    const result = await onToggleWishlist(product.id);
+    if (result && !result.ok && !result.requiresAuth && result.error) {
+      setActionError(result.error);
+    }
   };
 
   return (
@@ -82,7 +106,7 @@ export const ProductDetailModal = ({
 
                 {/* Wishlist Button */}
                 <button
-                  onClick={() => onToggleWishlist(product.id)}
+                  onClick={handleWishlistClick}
                   className={`absolute top-3 right-3 p-2 sm:p-2.5 rounded-full backdrop-blur-md shadow-md transition-all cursor-pointer ${
                     isWishlisted
                       ? 'bg-[#164B3B] text-[#F7F3EA]'
@@ -197,6 +221,12 @@ export const ProductDetailModal = ({
                       Total: <strong className="text-[#164B3B]">{formatINR(product.price * quantity)}</strong>
                     </span>
                   </div>
+
+                  {actionError && (
+                    <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs">
+                      {actionError}
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                     <button

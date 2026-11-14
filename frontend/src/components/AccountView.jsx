@@ -15,8 +15,13 @@ export const AccountView = ({
   currentUser = null,
   orders,
   wishlistIds,
+  wishlistProducts = [],
+  wishlistLoading = false,
+  wishlistError = null,
+  authPromptNotice = null,
   allProducts,
   onToggleWishlist,
+  onClearWishlist,
   onAddToCart,
   onSelectProduct,
   onAuthSuccess,
@@ -38,6 +43,10 @@ export const AccountView = ({
   const isSignedIn = Boolean(currentUser);
 
   useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
+  useEffect(() => {
     if (currentUser) {
       setProfile({ ...EMPTY_USER_PROFILE, ...currentUser });
     } else {
@@ -53,7 +62,12 @@ export const AccountView = ({
     }
   }, [orders, selectedOrder]);
 
-  const wishlistedProducts = allProducts.filter((p) => wishlistIds.includes(p.id));
+  const wishlistedProducts =
+    !isSignedIn
+      ? []
+      : wishlistProducts.length > 0
+      ? wishlistProducts
+      : allProducts.filter((p) => wishlistIds.includes(p.id));
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
@@ -404,11 +418,49 @@ export const AccountView = ({
       {/* Tab: Wishlist */}
       {activeTab === 'wishlist' && (
         <div>
-          <h2 className="font-serif text-xl font-medium text-[#29231F] mb-6">
-            Your Curated Wishlist ({wishlistedProducts.length})
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+            <h2 className="font-serif text-xl font-medium text-[#29231F]">
+              Your Curated Wishlist ({wishlistedProducts.length})
+            </h2>
+            {isSignedIn && wishlistedProducts.length > 0 && onClearWishlist && (
+              <button
+                type="button"
+                onClick={onClearWishlist}
+                className="px-3.5 py-1.5 text-xs font-semibold text-red-700 bg-white border border-red-200 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+              >
+                Clear All
+              </button>
+            )}
+          </div>
 
-          {wishlistedProducts.length === 0 ? (
+          {wishlistError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs">
+              {wishlistError}
+            </div>
+          )}
+
+          {!isSignedIn ? (
+            <div className="bg-white p-12 rounded-2xl border border-[#E8DFD0] text-center max-w-md mx-auto">
+              <Heart className="w-10 h-10 text-[#C6A15B] mx-auto mb-3" />
+              <h3 className="font-serif text-lg font-medium text-[#29231F]">
+                Sign In to Access Your Wishlist
+              </h3>
+              <p className="text-xs text-[#29231F]/70 mt-1 leading-relaxed">
+                Your saved pieces are synced privately to your UNMADE GALLERY collector account.
+              </p>
+              <button
+                type="button"
+                onClick={() => setActiveTab('profile')}
+                className="mt-5 px-5 py-2.5 bg-[#164B3B] text-[#F7F3EA] text-xs font-semibold rounded-lg hover:bg-[#20634f] transition-colors cursor-pointer"
+              >
+                Sign In / Create Account
+              </button>
+            </div>
+          ) : wishlistLoading && wishlistedProducts.length === 0 ? (
+            <div className="bg-white p-10 rounded-2xl border border-[#E8DFD0] text-center text-xs text-[#29231F]/70 max-w-md mx-auto">
+              Loading your saved creations...
+            </div>
+          ) : wishlistedProducts.length === 0 ? (
             <div className="bg-white p-12 rounded-2xl border border-[#E8DFD0] text-center max-w-md mx-auto">
               <Heart className="w-10 h-10 text-[#C6A15B] mx-auto mb-3" />
               <h3 className="font-serif text-lg font-medium text-[#29231F]">No pieces saved yet</h3>
@@ -579,6 +631,14 @@ export const AccountView = ({
                 </button>
               )}
             </div>
+
+            {authPromptNotice && !isSignedIn && (
+              <div className="p-3.5 rounded-lg text-xs border bg-[#164B3B]/8 border-[#C6A15B]/50 text-[#164B3B] leading-relaxed">
+                Please sign in or create a collector account to{' '}
+                <strong>{authPromptNotice.actionLabel}</strong>
+                {authPromptNotice.productName ? ` (“${authPromptNotice.productName}”)` : ''}. We will return you automatically once signed in.
+              </div>
+            )}
 
             {authFeedback && (
               <div

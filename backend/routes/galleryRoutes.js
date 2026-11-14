@@ -15,7 +15,9 @@ import {
   orderStatusSchema,
   customOrderStatusSchema,
   customOrderCreateSchema,
-  orderCreateSchema
+  orderCreateSchema,
+  cartAddItemSchema,
+  cartUpdateItemSchema
 } from '../middleware/validate.js';
 import { apiNotFoundHandler } from '../middleware/errorHandler.js';
 import {
@@ -36,6 +38,17 @@ import {
   logoutUser,
   updateUserProfile
 } from '../services/galleryStore.js';
+import {
+  getUserWishlist,
+  addProductToWishlist,
+  removeProductFromWishlist,
+  clearUserWishlist,
+  getUserCart,
+  addCartItem,
+  updateCartItemQuantity,
+  removeCartItem,
+  clearUserCart
+} from '../services/userCollectionStore.js';
 
 export function createGalleryRouter(options = {}) {
   const router = express.Router();
@@ -254,6 +267,105 @@ export function createGalleryRouter(options = {}) {
       }
     }
   );
+
+  // Authenticated User-Scoped Wishlist Endpoints (identity strictly from verified JWT req.user.id)
+  router.get('/wishlist', requireAuth, async (req, res, next) => {
+    try {
+      const wishlist = await getUserWishlist(req.user.id);
+      res.json(wishlist);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post('/wishlist/:productId', requireAuth, sensitiveLimiter, async (req, res, next) => {
+    try {
+      const wishlist = await addProductToWishlist(req.user.id, req.params.productId);
+      res.json(wishlist);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.delete('/wishlist/:productId', requireAuth, sensitiveLimiter, async (req, res, next) => {
+    try {
+      const wishlist = await removeProductFromWishlist(req.user.id, req.params.productId);
+      res.json(wishlist);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.delete('/wishlist', requireAuth, sensitiveLimiter, async (req, res, next) => {
+    try {
+      const wishlist = await clearUserWishlist(req.user.id);
+      res.json(wishlist);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Authenticated User-Scoped Cart Endpoints (identity strictly from verified JWT req.user.id)
+  router.get('/cart', requireAuth, async (req, res, next) => {
+    try {
+      const cart = await getUserCart(req.user.id);
+      res.json(cart);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post(
+    '/cart/items',
+    requireAuth,
+    sensitiveLimiter,
+    validateBody(cartAddItemSchema),
+    async (req, res, next) => {
+      try {
+        const cart = await addCartItem(req.user.id, req.body.productId, req.body.quantity);
+        res.json(cart);
+      } catch (err) {
+        next(err);
+      }
+    }
+  );
+
+  router.patch(
+    '/cart/items/:productId',
+    requireAuth,
+    sensitiveLimiter,
+    validateBody(cartUpdateItemSchema),
+    async (req, res, next) => {
+      try {
+        const cart = await updateCartItemQuantity(
+          req.user.id,
+          req.params.productId,
+          req.body.quantity
+        );
+        res.json(cart);
+      } catch (err) {
+        next(err);
+      }
+    }
+  );
+
+  router.delete('/cart/items/:productId', requireAuth, sensitiveLimiter, async (req, res, next) => {
+    try {
+      const cart = await removeCartItem(req.user.id, req.params.productId);
+      res.json(cart);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.delete('/cart', requireAuth, sensitiveLimiter, async (req, res, next) => {
+    try {
+      const cart = await clearUserCart(req.user.id);
+      res.json(cart);
+    } catch (err) {
+      next(err);
+    }
+  });
 
   router.use(apiNotFoundHandler);
   return router;

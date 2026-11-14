@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Lock, CreditCard, Smartphone, Building, ArrowLeft, Sparkles } from 'lucide-react';
 import { calculateOrderSummary, formatINR } from '../lib/ecommerceLogic.js';
 import { getStoredUserProfile, saveStoredUserProfile } from '../lib/storage.js';
@@ -27,6 +27,21 @@ export const CheckoutModal = ({
     pincode: initialProfile.pincode || '',
     country: 'India'
   });
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const latest = getStoredUserProfile();
+    setAddress((prev) => ({
+      ...prev,
+      fullName: latest.name || prev.fullName || '',
+      email: latest.email || prev.email || '',
+      phone: latest.phone || prev.phone || '',
+      street: latest.street || prev.street || '',
+      city: latest.city || prev.city || '',
+      state: latest.state || prev.state || '',
+      pincode: latest.pincode || prev.pincode || ''
+    }));
+  }, [isOpen]);
 
   const [activePaymentTab, setActivePaymentTab] = useState('upi');
   const [upiId, setUpiId] = useState('collector@okhdfcbank');

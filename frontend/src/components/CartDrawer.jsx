@@ -11,9 +11,13 @@ import { calculateOrderSummary, formatINR, FREE_SHIPPING_THRESHOLD } from '../li
 export const CartDrawer = ({
   isOpen,
   cart,
+  isLoading = false,
+  isMutating = false,
+  error = null,
   onClose,
   onUpdateQuantity,
   onRemoveItem,
+  onClearCart,
   onProceedToCheckout,
   onExploreShop
 }) => {
@@ -87,7 +91,17 @@ export const CartDrawer = ({
 
         {/* Cart Item List */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3 sm:space-y-4">
-          {cart.length === 0 ? (
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs">
+              {error}
+            </div>
+          )}
+
+          {isLoading && cart.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-center p-6 text-xs text-[#29231F]/70">
+              Syncing your shopping bag with studio records...
+            </div>
+          ) : cart.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-6">
               <div className="w-16 h-16 rounded-full bg-[#E8DFD0]/50 flex items-center justify-center mb-4">
                 <ShoppingBag className="w-8 h-8 text-[#164B3B]/60" />
@@ -130,7 +144,8 @@ export const CartDrawer = ({
                       </h4>
                       <button
                         onClick={() => onRemoveItem(item.product.id)}
-                        className="text-[#29231F]/40 hover:text-red-700 transition-colors p-0.5 cursor-pointer"
+                        disabled={isMutating}
+                        className="text-[#29231F]/40 hover:text-red-700 transition-colors p-0.5 cursor-pointer disabled:opacity-30"
                         aria-label={`Remove ${item.product.name} from bag`}
                       >
                         <Trash2 className="w-4 h-4" />
@@ -145,7 +160,8 @@ export const CartDrawer = ({
                     <div className="flex items-center border border-[#E8DFD0] rounded-md overflow-hidden bg-[#F7F3EA]">
                       <button
                         onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
-                        className="px-2.5 py-1 text-xs font-bold hover:bg-[#E8DFD0] transition-colors cursor-pointer"
+                        disabled={isMutating}
+                        className="px-2.5 py-1 text-xs font-bold hover:bg-[#E8DFD0] transition-colors cursor-pointer disabled:opacity-30"
                         aria-label="Decrease quantity"
                       >
                         -
@@ -155,7 +171,7 @@ export const CartDrawer = ({
                       </span>
                       <button
                         onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
-                        disabled={item.quantity >= item.product.stock}
+                        disabled={isMutating || item.quantity >= item.product.stock}
                         className="px-2.5 py-1 text-xs font-bold hover:bg-[#E8DFD0] transition-colors cursor-pointer disabled:opacity-30"
                         aria-label="Increase quantity"
                       >
@@ -237,16 +253,29 @@ export const CartDrawer = ({
             </div>
 
             {/* Checkout CTA */}
-            <button
-              onClick={() => {
-                onClose();
-                onProceedToCheckout();
-              }}
-              className="w-full py-3.5 bg-[#164B3B] hover:bg-[#20634f] text-[#F7F3EA] rounded-xl text-xs font-semibold tracking-widest uppercase transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <span>Proceed to Checkout</span>
-              <ArrowRight className="w-4 h-4 text-[#C6A15B]" />
-            </button>
+            <div className="flex items-center gap-2">
+              {onClearCart && (
+                <button
+                  type="button"
+                  onClick={onClearCart}
+                  disabled={isMutating}
+                  className="px-3.5 py-3.5 border border-[#E8DFD0] text-[#29231F]/70 hover:text-red-700 hover:border-red-200 hover:bg-red-50/40 rounded-xl text-xs font-semibold transition-colors cursor-pointer disabled:opacity-40"
+                >
+                  Clear
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  onClose();
+                  onProceedToCheckout();
+                }}
+                disabled={isMutating}
+                className="flex-1 py-3.5 bg-[#164B3B] hover:bg-[#20634f] text-[#F7F3EA] rounded-xl text-xs font-semibold tracking-widest uppercase transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40"
+              >
+                <span>Proceed to Checkout</span>
+                <ArrowRight className="w-4 h-4 text-[#C6A15B]" />
+              </button>
+            </div>
 
             <div className="flex items-center justify-center gap-2 text-[11px] text-[#29231F]/60 text-center">
               <ShieldCheck className="w-3.5 h-3.5 text-[#164B3B] shrink-0" />

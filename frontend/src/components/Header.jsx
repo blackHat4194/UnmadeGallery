@@ -13,6 +13,7 @@ export const Header = ({
   isAdmin = false,
   onNavigate,
   onOpenCart,
+  onOpenWishlist,
   onOpenSearch
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -80,7 +81,7 @@ export const Header = ({
 
           {/* Wishlist Trigger */}
           <button
-            onClick={() => onNavigate('account', { tab: 'wishlist' })}
+            onClick={() => (onOpenWishlist ? onOpenWishlist() : onNavigate('account', { tab: 'wishlist' }))}
             className="relative p-1.5 sm:p-2 text-[#29231F] hover:text-[#164B3B] hover:bg-[#E8DFD0]/40 rounded-full transition-colors cursor-pointer"
             aria-label={`View wishlist, ${wishlistCount} items`}
           >
