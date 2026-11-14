@@ -108,7 +108,7 @@ export async function ensureSeededData() {
 
   if (getStorageMode() === 'mongodb') {
     const productCount = await Product.countDocuments();
-    if (productCount === 0) {
+    if (productCount === 0 && INITIAL_PRODUCTS.length > 0) {
       await Product.insertMany(INITIAL_PRODUCTS);
     }
 
@@ -124,12 +124,12 @@ export async function ensureSeededData() {
     }
 
     const orderCount = await Order.countDocuments();
-    if (orderCount === 0) {
+    if (orderCount === 0 && SEED_ORDERS.length > 0) {
       await Order.insertMany(SEED_ORDERS);
     }
 
     const customCount = await CustomOrder.countDocuments();
-    if (customCount === 0) {
+    if (customCount === 0 && SEED_CUSTOM_REQUESTS.length > 0) {
       await CustomOrder.insertMany(SEED_CUSTOM_REQUESTS);
     }
     return;
@@ -707,25 +707,33 @@ export async function updateUserProfile(userId, profileFields) {
   return sanitizeUser(users[idx]);
 }
 
-export async function createOrPromoteAdmin({ name, email, password }) {
+export async function createOrPromoteAdmin({ name, email, password, minPasswordLength = 8 }) {
   const cleanEmail = String(email || '').trim().toLowerCase();
-  if (!cleanEmail.includes('@') || !password || password.length < 10) {
-    throw new Error('Valid admin email and password (min 10 chars) are required.');
+  const cleanName = String(name || 'Studio Admin').trim() || 'Studio Admin';
+  const rawPassword = String(password || '');
+  if (!cleanEmail.includes('@') || !rawPassword || rawPassword.length < minPasswordLength) {
+    throw new Error(`Valid admin email and password (min ${minPasswordLength} chars) are required.`);
   }
 
-  const passwordHash = await bcrypt.hash(password, 12);
-
   if (getStorageMode() === 'mongodb') {
-    const existing = await User.findOne({ email: cleanEmail });
+    const existing = await User.findOne({ email: cleanEmail }).select('+passwordHash');
     if (existing) {
-      existing.name = name || existing.name;
-      existing.passwordHash = passwordHash;
+      const passwordMatches =
+        existing.passwordHash && (await bcrypt.compare(rawPassword, existing.passwordHash));
+      if (existing.role === 'admin' && existing.name === cleanName && passwordMatches) {
+        return sanitizeUser(existing);
+      }
+      existing.name = cleanName;
+      if (!passwordMatches) {
+        existing.passwordHash = await bcrypt.hash(rawPassword, 12);
+      }
       existing.role = 'admin';
       await existing.save();
       return sanitizeUser(existing);
     }
+    const passwordHash = await bcrypt.hash(rawPassword, 12);
     const created = await User.create({
-      name: name || 'Studio Admin',
+      name: cleanName,
       email: cleanEmail,
       passwordHash,
       role: 'admin',
@@ -737,19 +745,29 @@ export async function createOrPromoteAdmin({ name, email, password }) {
   const users = await readJsonFile(USERS_JSON_PATH, []);
   const idx = users.findIndex((u) => u.email === cleanEmail);
   if (idx >= 0) {
+    const existing = users[idx];
+    const passwordMatches =
+      existing.passwordHash && (await bcrypt.compare(rawPassword, existing.passwordHash));
+    if (existing.role === 'admin' && existing.name === cleanName && passwordMatches) {
+      return sanitizeUser(existing);
+    }
+    const nextPasswordHash = passwordMatches
+      ? existing.passwordHash
+      : await bcrypt.hash(rawPassword, 12);
     users[idx] = {
-      ...users[idx],
-      name: name || users[idx].name,
-      passwordHash,
+      ...existing,
+      name: cleanName,
+      passwordHash: nextPasswordHash,
       role: 'admin'
     };
     await writeJsonFile(USERS_JSON_PATH, users);
     return sanitizeUser(users[idx]);
   }
 
+  const passwordHash = await bcrypt.hash(rawPassword, 12);
   const adminUser = {
     id: `adm-${Date.now()}`,
-    name: name || 'Studio Admin',
+    name: cleanName,
     email: cleanEmail,
     passwordHash,
     phone: '',
@@ -762,4 +780,43 @@ export async function createOrPromoteAdmin({ name, email, password }) {
   };
   await writeJsonFile(USERS_JSON_PATH, [...users, adminUser]);
   return sanitizeUser(adminUser);
+}
+
+export async function bootstrapAdminFromEnv() {
+  const adminEmail = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+  const adminPassword = String(process.env.ADMIN_PASSWORD || '');
+  const adminName = String(process.env.ADMIN_NAME || 'Studio Admin').trim() || 'Studio Admin';
+
+  if (!adminEmail && !adminPassword) {
+    return null;
+  }
+
+  if (!adminEmail || !adminEmail.includes('@') || !adminPassword) {
+    console.warn(
+      '[UNMADE GALLERY] Incomplete admin environment configuration: set valid ADMIN_EMAIL and ADMIN_PASSWORD to enable auto-bootstrap.'
+    );
+    return null;
+  }
+
+  if (adminPassword.length < 6) {
+    console.warn(
+      '[UNMADE GALLERY] ADMIN_PASSWORD is too short (minimum 6 characters). Skipping env admin bootstrap.'
+    );
+    return null;
+  }
+
+  if (adminPassword.length < 10) {
+    console.warn(
+      '[UNMADE GALLERY] Security notice: ADMIN_PASSWORD is under 10 characters; consider a stronger passphrase in production.'
+    );
+  }
+
+  const admin = await createOrPromoteAdmin({
+    name: adminName,
+    email: adminEmail,
+    password: adminPassword,
+    minPasswordLength: 6
+  });
+  console.log(`[UNMADE GALLERY] Admin account ready from environment: ${admin.email}`);
+  return admin;
 }

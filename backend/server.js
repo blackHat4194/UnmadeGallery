@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import 'dotenv/config';
+import './config/env.js';
 import { createBackendApp, initializeBackend } from './app.js';
 
 const PORT = Number(process.env.PORT || 5000);

@@ -21,10 +21,17 @@ export const ShopView = ({
   const [selectedCollection, setSelectedCollection] = useState(initialCollection || 'All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('popularity');
-  const [maxPrice, setMaxPrice] = useState(6000);
+  const [maxPriceFilter, setMaxPriceFilter] = useState(null);
   const [inStockOnly, setInStockOnly] = useState(false);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [mobileGridColumns, setMobileGridColumns] = useState(2);
+
+  const catalogMaxPrice = useMemo(() => {
+    const highest = products.reduce((max, p) => Math.max(max, Number(p.price) || 0), 0);
+    return Math.max(6000, Math.ceil(highest / 500) * 500);
+  }, [products]);
+
+  const effectiveMaxPrice = maxPriceFilter === null ? catalogMaxPrice : Math.min(maxPriceFilter, catalogMaxPrice);
 
   const categories = [
     'All',
@@ -58,7 +65,7 @@ export const ShopView = ({
       if (selectedCollection !== 'All' && product.collection !== selectedCollection) {
         return false;
       }
-      if (product.price > maxPrice) {
+      if (product.price > effectiveMaxPrice) {
         return false;
       }
       if (inStockOnly && (!product.inStock || product.stock === 0)) {
@@ -69,7 +76,7 @@ export const ShopView = ({
         const matchName = product.name.toLowerCase().includes(q);
         const matchDesc = product.description.toLowerCase().includes(q);
         const matchSub = product.subtitle.toLowerCase().includes(q);
-        const matchMat = product.specifications.materials.toLowerCase().includes(q);
+        const matchMat = product.specifications?.materials?.toLowerCase().includes(q);
         if (!matchName && !matchDesc && !matchSub && !matchMat) {
           return false;
         }
@@ -78,13 +85,13 @@ export const ShopView = ({
     });
 
     return sortProducts(filtered, sortBy);
-  }, [products, selectedCategory, selectedCollection, maxPrice, inStockOnly, searchQuery, sortBy]);
+  }, [products, selectedCategory, selectedCollection, effectiveMaxPrice, inStockOnly, searchQuery, sortBy]);
 
   const resetFilters = () => {
     setSelectedCategory('All');
     setSelectedCollection('All');
     setSearchQuery('');
-    setMaxPrice(6000);
+    setMaxPriceFilter(null);
     setInStockOnly(false);
     setSortBy('popularity');
   };
@@ -93,7 +100,7 @@ export const ShopView = ({
     selectedCategory !== 'All' ||
     selectedCollection !== 'All' ||
     searchQuery.trim() !== '' ||
-    maxPrice < 6000 ||
+    (maxPriceFilter !== null && effectiveMaxPrice < catalogMaxPrice) ||
     inStockOnly ||
     sortBy !== 'popularity';
 
@@ -247,10 +254,10 @@ export const ShopView = ({
               <button onClick={() => setSelectedCollection('All')} className="hover:text-red-700 cursor-pointer ml-1">×</button>
             </span>
           )}
-          {maxPrice < 6000 && (
+          {maxPriceFilter !== null && effectiveMaxPrice < catalogMaxPrice && (
             <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#164B3B]/10 text-[#164B3B] rounded-full font-medium">
-              Under {formatINR(maxPrice)}
-              <button onClick={() => setMaxPrice(6000)} className="hover:text-red-700 cursor-pointer ml-1">×</button>
+              Under {formatINR(effectiveMaxPrice)}
+              <button onClick={() => setMaxPriceFilter(null)} className="hover:text-red-700 cursor-pointer ml-1">×</button>
             </span>
           )}
           {inStockOnly && (
@@ -320,21 +327,21 @@ export const ShopView = ({
           <div className="pt-4 border-t border-[#E8DFD0]">
             <div className="flex items-center justify-between text-xs mb-2">
               <span className="font-semibold uppercase tracking-wider text-[#29231F]/70">Max Budget:</span>
-              <span className="font-bold text-[#164B3B] tabular-nums">{formatINR(maxPrice)}</span>
+              <span className="font-bold text-[#164B3B] tabular-nums">{formatINR(effectiveMaxPrice)}</span>
             </div>
             <input
               type="range"
-              min="1500"
-              max="6000"
+              min="500"
+              max={catalogMaxPrice}
               step="250"
-              value={maxPrice}
-              onChange={(e) => setMaxPrice(Number(e.target.value))}
+              value={effectiveMaxPrice}
+              onChange={(e) => setMaxPriceFilter(Number(e.target.value))}
               className="w-full accent-[#164B3B] cursor-pointer"
               aria-label="Filter maximum price"
             />
             <div className="flex justify-between text-[10px] text-[#29231F]/50 mt-1 font-mono">
-              <span>₹1,500</span>
-              <span>₹6,000+</span>
+              <span>₹500</span>
+              <span>{formatINR(catalogMaxPrice)}+</span>
             </div>
           </div>
 
@@ -371,17 +378,23 @@ export const ShopView = ({
           {filteredProducts.length === 0 ? (
             <div className="bg-white p-8 sm:p-12 rounded-2xl border border-[#E8DFD0] text-center">
               <h3 className="font-serif text-xl sm:text-2xl font-medium text-[#29231F]">
-                No creations match your filter criteria
+                {products.length === 0 && !hasActiveFilters
+                  ? 'The Gallery Catalog Is Currently Empty'
+                  : 'No creations match your filter criteria'}
               </h3>
-              <p className="text-xs sm:text-sm text-[#29231F]/70 mt-1 mb-5 max-w-sm mx-auto">
-                Try widening your price range, toggling stock availability, or clearing search keywords.
+              <p className="text-xs sm:text-sm text-[#29231F]/70 mt-1 mb-5 max-w-md mx-auto">
+                {products.length === 0 && !hasActiveFilters
+                  ? 'Creations published manually through Studio Admin will appear here immediately.'
+                  : 'Try widening your price range, toggling stock availability, or clearing search keywords.'}
               </p>
-              <button
-                onClick={resetFilters}
-                className="px-6 py-2.5 bg-[#164B3B] text-[#F7F3EA] text-xs font-semibold rounded-lg hover:bg-[#20634f] transition-colors cursor-pointer"
-              >
-                Clear All Filters
-              </button>
+              {hasActiveFilters && (
+                <button
+                  onClick={resetFilters}
+                  className="px-6 py-2.5 bg-[#164B3B] text-[#F7F3EA] text-xs font-semibold rounded-lg hover:bg-[#20634f] transition-colors cursor-pointer"
+                >
+                  Clear All Filters
+                </button>
+              )}
             </div>
           ) : (
             <div
@@ -506,15 +519,15 @@ export const ShopView = ({
               <div>
                 <div className="flex items-center justify-between text-xs mb-2">
                   <span className="font-semibold uppercase tracking-wider text-[#29231F]/70">Max Budget:</span>
-                  <span className="font-bold text-[#164B3B] tabular-nums">{formatINR(maxPrice)}</span>
+                  <span className="font-bold text-[#164B3B] tabular-nums">{formatINR(effectiveMaxPrice)}</span>
                 </div>
                 <input
                   type="range"
-                  min="1500"
-                  max="6000"
+                  min="500"
+                  max={catalogMaxPrice}
                   step="250"
-                  value={maxPrice}
-                  onChange={(e) => setMaxPrice(Number(e.target.value))}
+                  value={effectiveMaxPrice}
+                  onChange={(e) => setMaxPriceFilter(Number(e.target.value))}
                   className="w-full accent-[#164B3B]"
                 />
               </div>

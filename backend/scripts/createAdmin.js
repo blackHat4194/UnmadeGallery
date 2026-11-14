@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import 'dotenv/config';
+import '../config/env.js';
 import mongoose from 'mongoose';
 import { connectDatabase } from '../config/db.js';
 import { createOrPromoteAdmin } from '../services/galleryStore.js';
@@ -23,17 +23,21 @@ async function run() {
 
   if (!email || !email.includes('@')) {
     console.error('Usage: node backend/scripts/createAdmin.js --email <admin@domain.com> --password <strong-password>');
-    console.error('Or set ADMIN_EMAIL and ADMIN_PASSWORD environment variables.');
+    console.error('Or set ADMIN_EMAIL and ADMIN_PASSWORD environment variables in backend/.env.');
     process.exit(1);
   }
 
-  if (!password || password.length < 10) {
-    console.error('Admin password must be at least 10 characters long.');
+  if (!password || password.length < 8) {
+    console.error('Admin password must be at least 8 characters long.');
     process.exit(1);
+  }
+
+  if (password.length < 10) {
+    console.warn('[UNMADE GALLERY] Security tip: consider using a password of 10+ characters in production.');
   }
 
   const dbStatus = await connectDatabase();
-  const admin = await createOrPromoteAdmin({ name, email, password });
+  const admin = await createOrPromoteAdmin({ name, email, password, minPasswordLength: 8 });
 
   console.log(
     `[UNMADE GALLERY] Admin account ready: ${admin.email} (role: ${admin.role}, storage: ${dbStatus.mode})`

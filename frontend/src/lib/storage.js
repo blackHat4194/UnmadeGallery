@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { INITIAL_PRODUCTS } from '../data/products.js';
-
 const STORAGE_KEYS = {
   PRODUCTS: 'unmade_products_v1',
   ORDERS: 'unmade_orders_v1',
@@ -36,22 +34,20 @@ export const EMPTY_USER_PROFILE = {
 };
 
 export function getStoredProducts() {
-  if (typeof window === 'undefined') return INITIAL_PRODUCTS;
+  if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(INITIAL_PRODUCTS));
-      return INITIAL_PRODUCTS;
-    }
-    return JSON.parse(raw);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return INITIAL_PRODUCTS;
+    return [];
   }
 }
 
 export function saveStoredProducts(products) {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+  localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(Array.isArray(products) ? products : []));
 }
 
 export function getStoredOrders() {

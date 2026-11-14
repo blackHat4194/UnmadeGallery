@@ -9,7 +9,12 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import http from 'node:http';
 import { createBackendApp } from '../app.js';
-import { BACKEND_DATA_DIR, createOrPromoteAdmin, ensureSeededData } from '../services/galleryStore.js';
+import {
+  BACKEND_DATA_DIR,
+  bootstrapAdminFromEnv,
+  createOrPromoteAdmin,
+  ensureSeededData
+} from '../services/galleryStore.js';
 import { createAuthRateLimiter } from '../middleware/rateLimiters.js';
 import { validateSecurityEnv } from '../utils/jwt.js';
 
@@ -298,4 +303,62 @@ test('Production startup rejects missing or weak JWT_SECRET', () => {
     if (prevSecret === undefined) delete process.env.JWT_SECRET;
     else process.env.JWT_SECRET = prevSecret;
   }
+});
+
+test('Environment admin bootstrap creates/syncs ADMIN_* credentials and allows Admin login', async () => {
+  const prevName = process.env.ADMIN_NAME;
+  const prevEmail = process.env.ADMIN_EMAIL;
+  const prevPass = process.env.ADMIN_PASSWORD;
+
+  const envEmail = `envadmin.${Date.now()}@unmadegallery.test`;
+  const envPass = 'EnvPass1'; // 8 chars to verify <10 char .env passwords also work seamlessly
+
+  try {
+    process.env.ADMIN_NAME = 'Atelier Owner';
+    process.env.ADMIN_EMAIL = envEmail;
+    process.env.ADMIN_PASSWORD = envPass;
+
+    const admin = await bootstrapAdminFromEnv();
+    assert.ok(admin);
+    assert.equal(admin.email, envEmail);
+    assert.equal(admin.name, 'Atelier Owner');
+    assert.equal(admin.role, 'admin');
+
+    const loginRes = await apiRequest('/api/auth/login', {
+      method: 'POST',
+      body: { email: envEmail, password: envPass }
+    });
+    assert.equal(loginRes.status, 200);
+    assert.equal(loginRes.body.user.role, 'admin');
+    assert.equal(loginRes.body.user.email, envEmail);
+    assert.ok(loginRes.body.token);
+
+    // Updating ADMIN_PASSWORD in .env and re-bootstrapping updates credentials cleanly
+    const updatedPass = 'EnvPassUpdated99';
+    process.env.ADMIN_PASSWORD = updatedPass;
+    await bootstrapAdminFromEnv();
+
+    const updatedLogin = await apiRequest('/api/auth/login', {
+      method: 'POST',
+      body: { email: envEmail, password: updatedPass }
+    });
+    assert.equal(updatedLogin.status, 200);
+    assert.equal(updatedLogin.body.user.role, 'admin');
+  } finally {
+    if (prevName === undefined) delete process.env.ADMIN_NAME;
+    else process.env.ADMIN_NAME = prevName;
+    if (prevEmail === undefined) delete process.env.ADMIN_EMAIL;
+    else process.env.ADMIN_EMAIL = prevEmail;
+    if (prevPass === undefined) delete process.env.ADMIN_PASSWORD;
+    else process.env.ADMIN_PASSWORD = prevPass;
+  }
+});
+
+test('Public catalog starts clean with empty seeded products and reviews', async () => {
+  const galleryRes = await apiRequest('/api/gallery-data');
+  assert.equal(galleryRes.status, 200);
+  assert.ok(Array.isArray(galleryRes.body.products));
+  assert.ok(Array.isArray(galleryRes.body.reviews));
+  assert.equal(galleryRes.body.products.length, 0);
+  assert.equal(galleryRes.body.reviews.length, 0);
 });

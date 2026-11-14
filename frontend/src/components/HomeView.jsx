@@ -88,25 +88,27 @@ export const HomeView = ({
                   <ResinArtImage
                     type={heroProduct?.resinArtworkType || 'floral-crystal'}
                     imageUrl={heroProduct?.imageUrl}
-                    alt={heroProduct?.name || "Aura Botanical Pendant with preserved baby's breath and 24k gold leaf"}
+                    alt={heroProduct?.name || 'UNMADE GALLERY studio artwork'}
                     className="w-full h-full"
                   />
                   {/* Floating Editorial Badge */}
                   <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-md p-4 rounded-xl border border-[#E8DFD0] flex items-center justify-between shadow-md">
                     <div className="min-w-0 pr-3">
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#C6A15B]">Featured Masterwork</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#C6A15B]">
+                        {heroProduct ? 'Featured Masterwork' : 'Atelier Collection'}
+                      </p>
                       <h4 className="font-serif text-base font-semibold text-[#164B3B] truncate">
-                        {heroProduct?.name || 'Aura Botanical Pendant'}
+                        {heroProduct?.name || 'Curated Resin Studio'}
                       </h4>
                       <p className="text-xs text-[#29231F]/70 truncate">
-                        {heroProduct?.subtitle || 'Preserved Gypsophila & 24K Gold'}
+                        {heroProduct?.subtitle || 'New botanical creations coming soon'}
                       </p>
                     </div>
                     <button
                       onClick={() => (heroProduct ? onSelectProduct(heroProduct) : onNavigate('shop'))}
                       className="px-3.5 py-2 bg-[#164B3B] text-[#F7F3EA] text-xs font-semibold rounded-lg hover:bg-[#20634f] transition-colors cursor-pointer shrink-0"
                     >
-                      View Piece
+                      {heroProduct ? 'View Piece' : 'Explore Gallery'}
                     </button>
                   </div>
                 </div>
@@ -186,18 +188,39 @@ export const HomeView = ({
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {bestSellers.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              isWishlisted={wishlistIds.includes(product.id)}
-              onToggleWishlist={onToggleWishlist}
-              onAddToCart={onAddToCart}
-              onSelectProduct={onSelectProduct}
-            />
-          ))}
-        </div>
+        {bestSellers.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-[#E8DFD0] p-8 sm:p-10 text-center space-y-3">
+            <h3 className="font-serif text-xl font-medium text-[#164B3B]">
+              {products.length === 0 ? 'Studio Creations Coming Soon' : 'No Best Sellers Highlighted Yet'}
+            </h3>
+            <p className="text-xs sm:text-sm text-[#29231F]/70 max-w-md mx-auto">
+              {products.length === 0
+                ? 'Our catalog is freshly opened for manual studio curation. New handcrafted pieces added by the studio will appear here.'
+                : 'Explore the complete gallery catalog or request a bespoke piece tailored to your story.'}
+            </p>
+            <div className="pt-2">
+              <button
+                onClick={() => onNavigate(products.length === 0 ? 'custom' : 'shop')}
+                className="px-5 py-2.5 bg-[#164B3B] text-[#F7F3EA] text-xs font-semibold rounded-lg hover:bg-[#20634f] transition-colors cursor-pointer"
+              >
+                {products.length === 0 ? 'Request a Custom Piece' : 'Browse Full Catalog'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {bestSellers.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                isWishlisted={wishlistIds.includes(product.id)}
+                onToggleWishlist={onToggleWishlist}
+                onAddToCart={onAddToCart}
+                onSelectProduct={onSelectProduct}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* E. Brand Story: "Every Piece Has Its Own Story." */}
@@ -305,33 +328,42 @@ export const HomeView = ({
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {reviews.map((review) => (
-            <div
-              key={review.id}
-              className="bg-white p-6 rounded-2xl border border-[#E8DFD0] shadow-xs flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center gap-1 text-[#C6A15B] mb-3">
-                  {[...Array(review.rating)].map((_, i) => (
-                    <Star key={i} className="w-3.5 h-3.5 fill-[#C6A15B]" />
-                  ))}
+        {reviews.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-[#E8DFD0] p-8 text-center">
+            <p className="font-serif text-lg text-[#164B3B]">No collector reviews yet</p>
+            <p className="text-xs text-[#29231F]/65 mt-1">
+              Verified collector impressions will appear here once pieces find their homes.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {reviews.map((review) => (
+              <div
+                key={review.id}
+                className="bg-white p-6 rounded-2xl border border-[#E8DFD0] shadow-xs flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center gap-1 text-[#C6A15B] mb-3">
+                    {[...Array(review.rating)].map((_, i) => (
+                      <Star key={i} className="w-3.5 h-3.5 fill-[#C6A15B]" />
+                    ))}
+                  </div>
+                  <p className="text-xs text-[#29231F]/80 leading-relaxed italic">
+                    "{review.comment}"
+                  </p>
                 </div>
-                <p className="text-xs text-[#29231F]/80 leading-relaxed italic">
-                  "{review.comment}"
-                </p>
-              </div>
 
-              <div className="mt-6 pt-4 border-t border-[#E8DFD0]/60">
-                <p className="font-serif text-sm font-semibold text-[#164B3B]">{review.author}</p>
-                <p className="text-[11px] text-[#29231F]/60">{review.location}</p>
-                <p className="text-[10px] text-[#C6A15B] font-medium mt-1 uppercase tracking-wide">
-                  Verified: {review.productName}
-                </p>
+                <div className="mt-6 pt-4 border-t border-[#E8DFD0]/60">
+                  <p className="font-serif text-sm font-semibold text-[#164B3B]">{review.author}</p>
+                  <p className="text-[11px] text-[#29231F]/60">{review.location}</p>
+                  <p className="text-[10px] text-[#C6A15B] font-medium mt-1 uppercase tracking-wide">
+                    Verified: {review.productName}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

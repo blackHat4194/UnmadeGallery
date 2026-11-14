@@ -110,10 +110,49 @@ test('Guest requests to all Wishlist and Cart endpoints are rejected with 401', 
 });
 
 test('User A and User B have isolated Wishlists and Carts, with CRUD, deduplication, and server pricing', async () => {
+  const adminEmail = `catalogadmin.${Date.now()}@unmadegallery.test`;
+  const adminPass = 'CatalogAdmin#2026!';
+  await createOrPromoteAdmin({ name: 'Catalog Admin', email: adminEmail, password: adminPass });
+  const adminLogin = await apiRequest('/api/auth/login', {
+    method: 'POST',
+    body: { email: adminEmail, password: adminPass }
+  });
+  assert.equal(adminLogin.status, 200);
+  const adminToken = adminLogin.body.token;
+
+  const createARes = await apiRequest('/api/products', {
+    method: 'POST',
+    token: adminToken,
+    body: {
+      name: 'Test Floral Teardrop Pendant',
+      category: 'Floral Jewellery',
+      collection: 'Floral Elegance',
+      price: 2450,
+      stock: 5,
+      description: 'Handcrafted botanical test pendant for wishlist and cart verification.'
+    }
+  });
+  assert.equal(createARes.status, 201);
+  const productA = createARes.body.product;
+
+  const createBRes = await apiRequest('/api/products', {
+    method: 'POST',
+    token: adminToken,
+    body: {
+      name: 'Test Emerald Resin Hoops',
+      category: 'Earrings',
+      collection: 'Emerald Collection',
+      price: 3100,
+      stock: 6,
+      description: 'Handcrafted emerald test earrings for wishlist and cart verification.'
+    }
+  });
+  assert.equal(createBRes.status, 201);
+  const productB = createBRes.body.product;
+
   const catalogRes = await apiRequest('/api/products');
   assert.equal(catalogRes.status, 200);
-  const productA = catalogRes.body.products[0];
-  const productB = catalogRes.body.products[1];
+  assert.ok(catalogRes.body.products.length >= 2);
   assert.ok(productA && productB);
 
   const regA = await apiRequest('/api/auth/register', {

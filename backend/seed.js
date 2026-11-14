@@ -3,14 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import 'dotenv/config';
+import './config/env.js';
 import mongoose from 'mongoose';
 import { connectDatabase } from './config/db.js';
-import { ensureSeededData } from './services/galleryStore.js';
+import { bootstrapAdminFromEnv, ensureSeededData } from './services/galleryStore.js';
 
 async function runSeed() {
   const status = await connectDatabase();
   await ensureSeededData();
+  await bootstrapAdminFromEnv();
   console.log(`UNMADE GALLERY seed completed successfully (mode: ${status.mode}).`);
   if (mongoose.connection.readyState === 1) {
     await mongoose.disconnect();

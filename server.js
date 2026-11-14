@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import 'dotenv/config';
+import './backend/config/env.js';
 import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';

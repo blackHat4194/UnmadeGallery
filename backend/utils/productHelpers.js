@@ -194,7 +194,7 @@ export function cleanupShowcaseOnDelete(currentData, deletedProduct) {
 
   if (nextStory.heroProductId === deletedProduct?.id) {
     const defaultHero = remainingProducts.find((p) => p.id === 'unmade-001') || remainingProducts[0];
-    nextStory.heroProductId = defaultHero ? defaultHero.id : 'unmade-001';
+    nextStory.heroProductId = defaultHero ? defaultHero.id : '';
   }
 
   if (deletedUrl && nextStory.primaryStoryImageUrl === deletedUrl) {

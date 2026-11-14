@@ -29,7 +29,6 @@ import {
 } from './lib/ecommerceLogic.js';
 import { apiFetch, clearAuthToken, getAuthToken, setAuthToken } from './lib/api.js';
 import {
-  getStoredProducts,
   saveStoredProducts,
   saveStoredOrdersList,
   saveStoredCustomOrdersList,
@@ -41,7 +40,7 @@ import {
 export default function App() {
   // Application Data & Auth States
   const [currentUser, setCurrentUser] = useState(null);
-  const [products, setProducts] = useState(() => getStoredProducts());
+  const [products, setProducts] = useState([]);
   const [collections, setCollections] = useState(FEATURED_COLLECTIONS);
   const [storyShowcase, setStoryShowcase] = useState(STORY_SHOWCASE);
   const [reviews, setReviews] = useState(CUSTOMER_REVIEWS);

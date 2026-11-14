@@ -163,7 +163,7 @@ export const CheckoutModal = ({
                       required
                       value={address.fullName}
                       onChange={(e) => setAddress({ ...address, fullName: e.target.value })}
-                      placeholder="e.g. Devika Singhania"
+                      placeholder="Enter your full name"
                       className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs text-[#29231F] focus:outline-none focus:border-[#164B3B]"
                     />
                   </div>

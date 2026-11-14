@@ -3,12 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import './config/env.js';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import { connectDatabase } from './config/db.js';
 import { validateSecurityEnv } from './utils/jwt.js';
-import { BACKEND_DATA_DIR, ensureSeededData } from './services/galleryStore.js';
+import {
+  BACKEND_DATA_DIR,
+  bootstrapAdminFromEnv,
+  ensureSeededData
+} from './services/galleryStore.js';
 import { createGalleryRouter } from './routes/galleryRoutes.js';
 import { safeErrorHandler } from './middleware/errorHandler.js';
 
@@ -45,6 +50,7 @@ export async function initializeBackend() {
   validateSecurityEnv();
   const dbStatus = await connectDatabase();
   await ensureSeededData();
+  await bootstrapAdminFromEnv();
   return dbStatus;
 }
 

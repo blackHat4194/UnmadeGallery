@@ -71,7 +71,7 @@ Important variables inside `backend/.env`:
 - `JWT_SECRET=<minimum 32 random characters>` (Production mein **mandatory** hai; dev mein unset hone par per-process random secret generate hota hai. Generate karne ke liye: `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`)
 - `CORS_ORIGINS=http://localhost:5173,http://localhost:3000` (Allowed frontend origins ki comma-separated list)
 - `FRONTEND_URL=http://localhost:5173`
-- *(Optional, sirf CLI script ke liye)* `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`
+- `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` — Server startup par **automatically** admin account create / sync karne ke liye (aur `node backend/scripts/createAdmin.js` ke liye bhi). Unified root mode (`npm run dev`) aur standalone backend (`cd backend && npm run dev`) dono `backend/.env` ko automatically load karte hain.
 
 ### Frontend (`frontend/.env`)
 ```bash
@@ -90,9 +90,9 @@ Do alag terminal windows open karein:
 ```bash
 cd backend
 npm install
-npm run seed    # Initial products, collections, sample orders aur custom requests seed karne ke liye
-npm run dev     # Starts node --watch server.js on http://localhost:5000
+npm run dev     # Starts node --watch server.js on http://localhost:5000 (auto-syncs ADMIN_* from backend/.env)
 ```
+*(Note: Store ab default sample products, dummy users, reviews ya fake orders ke bina **clean & empty** start hota hai taaki aap Admin panel se sab manually add kar sakein. Agar aapke purane MongoDB database mein pehle ke sample docs store hain, toh unhe clean karne ke liye `npm run reset-data` run karein.)*
 
 ### Terminal 2 — Frontend Client (`:5173`)
 ```bash
@@ -122,20 +122,28 @@ Browser mein open karein: **`http://localhost:3000`**
 
 Security ke liye project mein **koi bhi default ya hardcoded admin password nahi rakha gaya hai** (`backend/data/users.json` initially empty `[]` rehta hai), aur public signup (`/api/auth/register`) hamesha sirf `customer` account hi banata hai.
 
-### Step 1: Apna Admin Account & Password Create Karein (CLI)
-Project root folder se ye command run karke apni pasand ka email aur strong password (minimum **10 characters**) set karein:
+### Step 1: Apna Admin Account Set Karein (Option A — `backend/.env` recommended, ya Option B — CLI)
 
+#### Option A: `backend/.env` ke through (Automatic on Server Start)
+Apni `backend/.env` file mein ye values set karein aur server restart karein:
+```env
+ADMIN_NAME=Studio Admin
+ADMIN_EMAIL=admin@unmadegallery.com
+ADMIN_PASSWORD=ApnaStrongPassword
+```
+Server start hote hi (`npm run dev` root se ho ya `backend/` se), backend automatically is email/password ko hash karke `admin` role ke saath sync kar deta hai (minimum 6 characters; production ke liye 10+ characters recommended).
+
+#### Option B: CLI Script se
+Project root folder se ye command bhi run kar sakte hain:
 ```bash
 node backend/scripts/createAdmin.js --name "Studio Admin" --email "admin@unmadegallery.com" --password "ApnaStrongPassword123!"
 ```
-
-*(Ya aap `backend/.env` mein `ADMIN_EMAIL` aur `ADMIN_PASSWORD` set karke `node backend/scripts/createAdmin.js` bhi run kar sakte hain. Agar user pehle se exist karta hai, toh ye command uska password update karke role ko `admin` par promote kar degi.)*
 
 ### Step 2: Browser Mein Admin Panel Open & Login Karein
 1. Direct Admin URL open karein:
    - Unified mode (`npm run dev` from root): **`http://localhost:3000/?page=admin`**
    - Separated MERN mode (`frontend/` dev server): **`http://localhost:5173/?page=admin`**
-2. Pehle **Atelier Admin Access** login screen open hogi — wahan wahi email aur password enter karein jo aapne Step 1 mein set kiya hai.
+2. Pehle **Atelier Admin Access** login screen open hogi — wahan wahi `ADMIN_EMAIL` aur `ADMIN_PASSWORD` enter karein jo aapne Step 1 mein set kiya hai.
 3. **Role-Based Security**:
    - Normal visitors aur signed-in customers ko Header ya Footer mein `Admin` buttons **dikhai nahi dete**.
    - Agar koi signed-in customer `/?page=admin` open kare, toh use **Restricted Console** screen dikhti hai aur backend admin APIs `403 Forbidden` return karti hain.

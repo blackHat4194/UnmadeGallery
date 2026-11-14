@@ -545,45 +545,51 @@ export const AdminDashboard = ({
               <h3 className="font-serif text-lg font-medium text-[#29231F] mb-4">
                 Recent Orders Needing Resin Artisan Action
               </h3>
-              <div className="overflow-x-auto -mx-2 sm:mx-0">
-                <table className="w-full text-left text-xs min-w-[620px]">
-                  <thead>
-                    <tr className="border-b border-[#E8DFD0] text-[#29231F]/60 uppercase tracking-wider text-[10px]">
-                      <th className="pb-3">Order Number</th>
-                      <th className="pb-3">Collector Name</th>
-                      <th className="pb-3">Date</th>
-                      <th className="pb-3">Items</th>
-                      <th className="pb-3">Total (₹)</th>
-                      <th className="pb-3">Status</th>
-                      <th className="pb-3">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#E8DFD0]/60">
-                    {orders.slice(0, 5).map((ord) => (
-                      <tr key={ord.id} className="hover:bg-[#F7F3EA]/50">
-                        <td className="py-3 font-mono font-bold text-[#164B3B]">{ord.orderNumber}</td>
-                        <td className="py-3 font-medium">{ord.address.fullName}</td>
-                        <td className="py-3 text-[#29231F]/60">{ord.date}</td>
-                        <td className="py-3">{ord.items.length} items</td>
-                        <td className="py-3 font-semibold tabular-nums text-[#164B3B]">{formatINR(ord.total)}</td>
-                        <td className="py-3">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-[#164B3B]/10 text-[#164B3B]">
-                            {ord.status}
-                          </span>
-                        </td>
-                        <td className="py-3">
-                          <button
-                            onClick={() => setActiveTab('orders')}
-                            className="text-[#C6A15B] hover:underline font-semibold"
-                          >
-                            Manage
-                          </button>
-                        </td>
+              {orders.length === 0 ? (
+                <p className="text-xs text-[#29231F]/65 py-6 text-center bg-[#F7F3EA]/50 rounded-xl border border-[#E8DFD0]">
+                  No orders have been placed yet. Customer purchases will appear here once submitted.
+                </p>
+              ) : (
+                <div className="overflow-x-auto -mx-2 sm:mx-0">
+                  <table className="w-full text-left text-xs min-w-[620px]">
+                    <thead>
+                      <tr className="border-b border-[#E8DFD0] text-[#29231F]/60 uppercase tracking-wider text-[10px]">
+                        <th className="pb-3">Order Number</th>
+                        <th className="pb-3">Collector Name</th>
+                        <th className="pb-3">Date</th>
+                        <th className="pb-3">Items</th>
+                        <th className="pb-3">Total (₹)</th>
+                        <th className="pb-3">Status</th>
+                        <th className="pb-3">Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-[#E8DFD0]/60">
+                      {orders.slice(0, 5).map((ord) => (
+                        <tr key={ord.id} className="hover:bg-[#F7F3EA]/50">
+                          <td className="py-3 font-mono font-bold text-[#164B3B]">{ord.orderNumber}</td>
+                          <td className="py-3 font-medium">{ord.address.fullName}</td>
+                          <td className="py-3 text-[#29231F]/60">{ord.date}</td>
+                          <td className="py-3">{ord.items.length} items</td>
+                          <td className="py-3 font-semibold tabular-nums text-[#164B3B]">{formatINR(ord.total)}</td>
+                          <td className="py-3">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-[#164B3B]/10 text-[#164B3B]">
+                              {ord.status}
+                            </span>
+                          </td>
+                          <td className="py-3">
+                            <button
+                              onClick={() => setActiveTab('orders')}
+                              className="text-[#C6A15B] hover:underline font-semibold cursor-pointer"
+                            >
+                              Manage
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -595,48 +601,54 @@ export const AdminDashboard = ({
               All Orders &amp; Studio Statuses
             </h3>
 
-            <div className="space-y-4">
-              {orders.map((ord) => (
-                <div key={ord.id} className="p-4 rounded-xl border border-[#E8DFD0] bg-[#F7F3EA]/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-[#164B3B]">{ord.orderNumber}</span>
-                      <span className="text-[11px] text-[#29231F]/60">({ord.date})</span>
+            {orders.length === 0 ? (
+              <p className="text-xs text-[#29231F]/65 py-8 text-center bg-[#F7F3EA]/40 rounded-xl border border-[#E8DFD0]">
+                No orders yet. Incoming orders will be listed here for studio production tracking.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {orders.map((ord) => (
+                  <div key={ord.id} className="p-4 rounded-xl border border-[#E8DFD0] bg-[#F7F3EA]/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-[#164B3B]">{ord.orderNumber}</span>
+                        <span className="text-[11px] text-[#29231F]/60">({ord.date})</span>
+                      </div>
+                      <p className="text-xs font-semibold text-[#29231F]">
+                        {ord.address.fullName} · {ord.address.city}, {ord.address.state} ({ord.address.phone})
+                      </p>
+                      <p className="text-[11px] text-[#29231F]/70">
+                        Items: {ord.items.map((i) => `${i.product.name} (x${i.quantity})`).join(', ')}
+                      </p>
                     </div>
-                    <p className="text-xs font-semibold text-[#29231F]">
-                      {ord.address.fullName} · {ord.address.city}, {ord.address.state} ({ord.address.phone})
-                    </p>
-                    <p className="text-[11px] text-[#29231F]/70">
-                      Items: {ord.items.map((i) => `${i.product.name} (x${i.quantity})`).join(', ')}
-                    </p>
-                  </div>
 
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="text-xs font-bold text-[#164B3B] tabular-nums">{formatINR(ord.total)}</p>
-                      <p className="text-[10px] text-emerald-700">Razorpay Paid</p>
-                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="text-xs font-bold text-[#164B3B] tabular-nums">{formatINR(ord.total)}</p>
+                        <p className="text-[10px] text-emerald-700">Razorpay Paid</p>
+                      </div>
 
-                    <div>
-                      <label className="block text-[10px] uppercase font-semibold text-[#29231F]/60 mb-1">
-                        Update Status
-                      </label>
-                      <select
-                        value={ord.status}
-                        onChange={(e) => onUpdateOrderStatus(ord.id, e.target.value)}
-                        className="px-3 py-1.5 bg-white border border-[#C6A15B] rounded-lg text-xs font-medium text-[#164B3B] focus:outline-none"
-                      >
-                        <option>Order Placed</option>
-                        <option>Resin Pouring &amp; Curing</option>
-                        <option>Hand Polishing &amp; Assembly</option>
-                        <option>Dispatched</option>
-                        <option>Delivered</option>
-                      </select>
+                      <div>
+                        <label className="block text-[10px] uppercase font-semibold text-[#29231F]/60 mb-1">
+                          Update Status
+                        </label>
+                        <select
+                          value={ord.status}
+                          onChange={(e) => onUpdateOrderStatus(ord.id, e.target.value)}
+                          className="px-3 py-1.5 bg-white border border-[#C6A15B] rounded-lg text-xs font-medium text-[#164B3B] focus:outline-none"
+                        >
+                          <option>Order Placed</option>
+                          <option>Resin Pouring &amp; Curing</option>
+                          <option>Hand Polishing &amp; Assembly</option>
+                          <option>Dispatched</option>
+                          <option>Delivered</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -660,53 +672,75 @@ export const AdminDashboard = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {products
-                  .filter((p) => p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.category.toLowerCase().includes(searchTerm.toLowerCase()))
-                  .map((product) => (
-                    <div key={product.id} className="p-4 rounded-xl border border-[#E8DFD0] bg-[#F7F3EA]/30 flex flex-col justify-between">
-                      <div>
-                        <div className="flex gap-3 items-center mb-3">
-                          <div className="w-16 h-16 rounded-lg overflow-hidden bg-white shrink-0 border border-[#E8DFD0]">
-                            <ResinArtImage type={product.resinArtworkType} imageUrl={product.imageUrl} alt={product.name} />
-                          </div>
-                          <div className="overflow-hidden min-w-0">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-[10px] text-[#C6A15B] uppercase font-semibold">{product.category}</span>
-                              {product.isBestSeller && (
-                                <span className="text-[9px] px-1.5 py-0.5 bg-[#164B3B]/10 text-[#164B3B] rounded font-semibold">
-                                  Best Seller
-                                </span>
+              {products.length === 0 ? (
+                <div className="p-8 text-center bg-[#F7F3EA]/50 rounded-xl border border-[#E8DFD0] space-y-3">
+                  <p className="font-serif text-base text-[#164B3B]">Your product catalog is empty</p>
+                  <p className="text-xs text-[#29231F]/70">
+                    Add your handmade creations manually using the button below to publish them to your storefront.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormError(null);
+                      setFieldErrors({});
+                      setNewForm(EMPTY_PRODUCT_FORM);
+                      setIsAddingProduct(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#164B3B] text-[#F7F3EA] text-xs font-semibold rounded-lg hover:bg-[#20634f] cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add First Creation</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {products
+                    .filter((p) => p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.category.toLowerCase().includes(searchTerm.toLowerCase()))
+                    .map((product) => (
+                      <div key={product.id} className="p-4 rounded-xl border border-[#E8DFD0] bg-[#F7F3EA]/30 flex flex-col justify-between">
+                        <div>
+                          <div className="flex gap-3 items-center mb-3">
+                            <div className="w-16 h-16 rounded-lg overflow-hidden bg-white shrink-0 border border-[#E8DFD0]">
+                              <ResinArtImage type={product.resinArtworkType} imageUrl={product.imageUrl} alt={product.name} />
+                            </div>
+                            <div className="overflow-hidden min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-[10px] text-[#C6A15B] uppercase font-semibold">{product.category}</span>
+                                {product.isBestSeller && (
+                                  <span className="text-[9px] px-1.5 py-0.5 bg-[#164B3B]/10 text-[#164B3B] rounded font-semibold">
+                                    Best Seller
+                                  </span>
+                                )}
+                              </div>
+                              <h4 className="font-serif text-sm font-medium text-[#29231F] truncate">{product.name}</h4>
+                              <p className="text-xs font-semibold text-[#164B3B] tabular-nums mt-0.5">{formatINR(product.price)}</p>
+                              {product.imageUrl && (
+                                <p className="text-[10px] text-[#29231F]/50 font-mono truncate mt-0.5">{product.imageUrl}</p>
                               )}
                             </div>
-                            <h4 className="font-serif text-sm font-medium text-[#29231F] truncate">{product.name}</h4>
-                            <p className="text-xs font-semibold text-[#164B3B] tabular-nums mt-0.5">{formatINR(product.price)}</p>
-                            {product.imageUrl && (
-                              <p className="text-[10px] text-[#29231F]/50 font-mono truncate mt-0.5">{product.imageUrl}</p>
-                            )}
+                          </div>
+
+                          <div className="flex items-center justify-between text-xs py-2 border-t border-[#E8DFD0]/60">
+                            <span className="text-[#29231F]/70">Available Stock:</span>
+                            <span className={`font-semibold tabular-nums ${product.stock <= 4 ? 'text-red-700' : 'text-[#164B3B]'}`}>
+                              {product.stock} pieces
+                            </span>
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between text-xs py-2 border-t border-[#E8DFD0]/60">
-                          <span className="text-[#29231F]/70">Available Stock:</span>
-                          <span className={`font-semibold tabular-nums ${product.stock <= 4 ? 'text-red-700' : 'text-[#164B3B]'}`}>
-                            {product.stock} pieces
-                          </span>
+                        <div className="pt-3 border-t border-[#E8DFD0]/60 flex gap-2">
+                          <button
+                            onClick={() => openEditModal(product)}
+                            className="flex-1 py-1.5 bg-[#164B3B] text-[#F7F3EA] text-xs font-semibold rounded-lg hover:bg-[#20634f] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                            <span>Edit Details &amp; Photo</span>
+                          </button>
                         </div>
                       </div>
-
-                      <div className="pt-3 border-t border-[#E8DFD0]/60 flex gap-2">
-                        <button
-                          onClick={() => openEditModal(product)}
-                          className="flex-1 py-1.5 bg-[#164B3B] text-[#F7F3EA] text-xs font-semibold rounded-lg hover:bg-[#20634f] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                          <span>Edit Details &amp; Photo</span>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-              </div>
+                    ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -718,41 +752,47 @@ export const AdminDashboard = ({
               Bespoke Custom Commission Requests ({customRequests.length})
             </h3>
 
-            <div className="space-y-4">
-              {customRequests.map((req) => (
-                <div key={req.id} className="p-5 rounded-xl border border-[#E8DFD0] bg-[#F7F3EA]/40 space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E8DFD0] pb-2">
-                    <div>
-                      <span className="text-[10px] font-mono text-[#C6A15B] font-bold">{req.id} · {req.requestDate}</span>
-                      <h4 className="font-serif text-base font-semibold text-[#164B3B]">{req.itemType} for {req.clientName}</h4>
+            {customRequests.length === 0 ? (
+              <p className="text-xs text-[#29231F]/65 py-8 text-center bg-[#F7F3EA]/40 rounded-xl border border-[#E8DFD0]">
+                No custom commission requests yet.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {customRequests.map((req) => (
+                  <div key={req.id} className="p-5 rounded-xl border border-[#E8DFD0] bg-[#F7F3EA]/40 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E8DFD0] pb-2">
+                      <div>
+                        <span className="text-[10px] font-mono text-[#C6A15B] font-bold">{req.id} · {req.requestDate}</span>
+                        <h4 className="font-serif text-base font-semibold text-[#164B3B]">{req.itemType} for {req.clientName}</h4>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-bold text-[#164B3B] tabular-nums">Est. {formatINR(req.estimatedPrice)}</span>
+                        <select
+                          value={req.status}
+                          onChange={(e) => onUpdateCustomStatus(req.id, e.target.value)}
+                          className="px-2.5 py-1 bg-white border border-[#C6A15B] rounded text-xs font-semibold text-[#164B3B]"
+                        >
+                          <option>Pending Review</option>
+                          <option>Artisan Quote Sent</option>
+                          <option>In Production</option>
+                          <option>Completed</option>
+                        </select>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs font-bold text-[#164B3B] tabular-nums">Est. {formatINR(req.estimatedPrice)}</span>
-                      <select
-                        value={req.status}
-                        onChange={(e) => onUpdateCustomStatus(req.id, e.target.value)}
-                        className="px-2.5 py-1 bg-white border border-[#C6A15B] rounded text-xs font-semibold text-[#164B3B]"
-                      >
-                        <option>Pending Review</option>
-                        <option>Artisan Quote Sent</option>
-                        <option>In Production</option>
-                        <option>Completed</option>
-                      </select>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-[#29231F]/80">
+                      <p><strong>Client:</strong> {req.clientName} ({req.clientEmail} · {req.clientPhone})</p>
+                      <p><strong>Occasion:</strong> {req.occasion}</p>
+                      <p><strong>Selected Botanicals:</strong> {req.flowerInclusions.join(', ')}</p>
+                      <p><strong>Metals &amp; Resin:</strong> {req.metalAccents} · {req.resinBaseColor}</p>
+                      {req.personalizedText && <p><strong>Engraving:</strong> "{req.personalizedText}"</p>}
+                      {req.specialNotes && <p><strong>Notes:</strong> {req.specialNotes}</p>}
                     </div>
                   </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-[#29231F]/80">
-                    <p><strong>Client:</strong> {req.clientName} ({req.clientEmail} · {req.clientPhone})</p>
-                    <p><strong>Occasion:</strong> {req.occasion}</p>
-                    <p><strong>Selected Botanicals:</strong> {req.flowerInclusions.join(', ')}</p>
-                    <p><strong>Metals &amp; Resin:</strong> {req.metalAccents} · {req.resinBaseColor}</p>
-                    {req.personalizedText && <p><strong>Engraving:</strong> "{req.personalizedText}"</p>}
-                    {req.specialNotes && <p><strong>Notes:</strong> {req.specialNotes}</p>}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
