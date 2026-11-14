@@ -8,6 +8,7 @@ import mongoose from 'mongoose';
 const orderSchema = new mongoose.Schema(
   {
     id: { type: String, required: true, unique: true, index: true },
+    userId: { type: String, index: true, default: null },
     orderNumber: { type: String, required: true, unique: true },
     date: { type: String, required: true },
     items: { type: [mongoose.Schema.Types.Mixed], required: true },

@@ -7,13 +7,13 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import { getStorageMode } from '../config/db.js';
 import { Product } from '../models/Product.js';
 import { GalleryConfig } from '../models/GalleryConfig.js';
 import { Order } from '../models/Order.js';
 import { CustomOrder } from '../models/CustomOrder.js';
 import { User } from '../models/User.js';
+import { signAuthToken } from '../utils/jwt.js';
 import {
   INITIAL_PRODUCTS,
   CUSTOMER_REVIEWS,
@@ -49,8 +49,21 @@ const ALLOWED_IMAGE_MIME = {
   'image/gif': 'gif'
 };
 
-function getJwtSecret() {
-  return process.env.JWT_SECRET || 'unmade_gallery_dev_jwt_secret';
+function sanitizeUser(user) {
+  if (!user) return null;
+  const plain = typeof user.toObject === 'function' ? user.toObject() : { ...user };
+  const id = plain.id || (plain._id ? plain._id.toString() : '');
+  return {
+    id,
+    name: plain.name || '',
+    email: plain.email || '',
+    phone: plain.phone || '',
+    street: plain.street || '',
+    city: plain.city || '',
+    state: plain.state || '',
+    pincode: plain.pincode || '',
+    role: plain.role === 'admin' ? 'admin' : 'customer'
+  };
 }
 
 function createDefaultGalleryData() {
@@ -387,24 +400,66 @@ export async function getOrders() {
   return await readJsonFile(ORDERS_JSON_PATH, SEED_ORDERS);
 }
 
-export async function createOrder(orderPayload) {
+export async function getOrdersForUser(user) {
+  if (!user) return [];
+  const cleanEmail = String(user.email || '').trim().toLowerCase();
   if (getStorageMode() === 'mongodb') {
-    const created = await Order.create(orderPayload);
+    const docs = await Order.find({
+      $or: [{ userId: user.id }, { 'address.email': cleanEmail }]
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+    return docs.map(stripMongoFields);
+  }
+  const all = await getOrders();
+  return all.filter(
+    (ord) =>
+      (ord.userId && ord.userId === user.id) ||
+      String(ord.address?.email || '').trim().toLowerCase() === cleanEmail
+  );
+}
+
+export async function createOrder(orderPayload, user = null) {
+  const record = {
+    ...orderPayload,
+    id: orderPayload.id || `ord-${Date.now().toString().slice(-6)}`,
+    orderNumber: orderPayload.orderNumber || `UG-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+    date:
+      orderPayload.date ||
+      new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) +
+        ', ' +
+        new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+    status: 'Order Placed',
+    userId: user?.id || null
+  };
+
+  if (getStorageMode() === 'mongodb') {
+    const created = await Order.create(record);
     return stripMongoFields(created);
   }
   const current = await getOrders();
-  const next = [orderPayload, ...current];
+  const next = [record, ...current];
   await writeJsonFile(ORDERS_JSON_PATH, next);
-  return orderPayload;
+  return record;
 }
 
 export async function updateOrderStatus(id, status) {
   if (getStorageMode() === 'mongodb') {
     const updated = await Order.findOneAndUpdate({ id }, { status }, { new: true }).lean();
-    if (!updated) throw new Error('Order not found.');
+    if (!updated) {
+      const err = new Error('Order not found.');
+      err.status = 404;
+      throw err;
+    }
     return stripMongoFields(updated);
   }
   const current = await getOrders();
+  const exists = current.some((o) => o.id === id);
+  if (!exists) {
+    const err = new Error('Order not found.');
+    err.status = 404;
+    throw err;
+  }
   const next = current.map((o) => (o.id === id ? { ...o, status } : o));
   await writeJsonFile(ORDERS_JSON_PATH, next);
   return next.find((o) => o.id === id);
@@ -418,38 +473,96 @@ export async function getCustomOrders() {
   return await readJsonFile(CUSTOM_ORDERS_JSON_PATH, SEED_CUSTOM_REQUESTS);
 }
 
-export async function createCustomOrder(customPayload) {
+export async function getCustomOrdersForUser(user) {
+  if (!user) return [];
+  const cleanEmail = String(user.email || '').trim().toLowerCase();
   if (getStorageMode() === 'mongodb') {
-    const created = await CustomOrder.create(customPayload);
+    const docs = await CustomOrder.find({
+      $or: [{ userId: user.id }, { clientEmail: cleanEmail }]
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+    return docs.map(stripMongoFields);
+  }
+  const all = await getCustomOrders();
+  return all.filter(
+    (req) =>
+      (req.userId && req.userId === user.id) ||
+      String(req.clientEmail || '').trim().toLowerCase() === cleanEmail
+  );
+}
+
+export async function createCustomOrder(customPayload, user = null) {
+  const record = {
+    ...customPayload,
+    id: customPayload.id || `cust-${Math.floor(100 + Math.random() * 900)}`,
+    requestDate:
+      customPayload.requestDate ||
+      new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+    status: 'Pending Review',
+    userId: user?.id || null
+  };
+
+  if (getStorageMode() === 'mongodb') {
+    const created = await CustomOrder.create(record);
     return stripMongoFields(created);
   }
   const current = await getCustomOrders();
-  const next = [customPayload, ...current];
+  const next = [record, ...current];
   await writeJsonFile(CUSTOM_ORDERS_JSON_PATH, next);
-  return customPayload;
+  return record;
 }
 
 export async function updateCustomOrderStatus(id, status) {
   if (getStorageMode() === 'mongodb') {
     const updated = await CustomOrder.findOneAndUpdate({ id }, { status }, { new: true }).lean();
-    if (!updated) throw new Error('Custom commission not found.');
+    if (!updated) {
+      const err = new Error('Custom commission not found.');
+      err.status = 404;
+      throw err;
+    }
     return stripMongoFields(updated);
   }
   const current = await getCustomOrders();
+  const exists = current.some((c) => c.id === id);
+  if (!exists) {
+    const err = new Error('Custom commission not found.');
+    err.status = 404;
+    throw err;
+  }
   const next = current.map((c) => (c.id === id ? { ...c, status } : c));
   await writeJsonFile(CUSTOM_ORDERS_JSON_PATH, next);
   return next.find((c) => c.id === id);
 }
 
+export async function findAuthUserById(userId) {
+  if (!userId) return null;
+  if (getStorageMode() === 'mongodb') {
+    const doc = await User.findById(userId).lean();
+    if (!doc) return null;
+    return {
+      ...sanitizeUser(doc),
+      tokenVersion: Number(doc.tokenVersion || 0)
+    };
+  }
+  const users = await readJsonFile(USERS_JSON_PATH, []);
+  const found = users.find((u) => u.id === userId);
+  if (!found) return null;
+  return {
+    ...sanitizeUser(found),
+    tokenVersion: Number(found.tokenVersion || 0)
+  };
+}
+
 export async function registerUser({ name, email, password }) {
   const cleanEmail = String(email || '').trim().toLowerCase();
-  if (!name?.trim() || !cleanEmail.includes('@') || !password || password.length < 6) {
-    const err = new Error('Please enter name, valid email, and a password of at least 6 characters.');
+  if (!name?.trim() || !cleanEmail.includes('@') || !password || password.length < 8) {
+    const err = new Error('Please enter name, valid email, and a password of at least 8 characters.');
     err.status = 400;
     throw err;
   }
 
-  const passwordHash = await bcrypt.hash(password, 10);
+  const passwordHash = await bcrypt.hash(password, 12);
 
   if (getStorageMode() === 'mongodb') {
     const existing = await User.findOne({ email: cleanEmail });
@@ -458,21 +571,17 @@ export async function registerUser({ name, email, password }) {
       err.status = 409;
       throw err;
     }
-    const created = await User.create({ name: name.trim(), email: cleanEmail, passwordHash });
-    const safeUser = {
-      id: created._id.toString(),
-      name: created.name,
-      email: created.email,
-      phone: created.phone,
-      street: created.street,
-      city: created.city,
-      state: created.state,
-      pincode: created.pincode,
-      role: created.role
-    };
-    const token = jwt.sign({ id: safeUser.id, email: safeUser.email, role: safeUser.role }, getJwtSecret(), {
-      expiresIn: '7d'
+    // Public registration ALWAYS enforces role: 'customer'
+    const created = await User.create({
+      name: name.trim(),
+      email: cleanEmail,
+      passwordHash,
+      role: 'customer',
+      tokenVersion: 0,
+      lastLoginAt: new Date()
     });
+    const safeUser = sanitizeUser(created);
+    const token = signAuthToken({ ...safeUser, tokenVersion: created.tokenVersion || 0 });
     return { user: safeUser, token };
   }
 
@@ -483,7 +592,7 @@ export async function registerUser({ name, email, password }) {
     throw err;
   }
   const newUser = {
-    id: `usr-${Date.now()}`,
+    id: `usr-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     name: name.trim(),
     email: cleanEmail,
     passwordHash,
@@ -492,13 +601,13 @@ export async function registerUser({ name, email, password }) {
     city: '',
     state: '',
     pincode: '',
-    role: 'customer'
+    role: 'customer',
+    tokenVersion: 0,
+    lastLoginAt: new Date().toISOString()
   };
   await writeJsonFile(USERS_JSON_PATH, [...users, newUser]);
-  const { passwordHash: _removed, ...safeUser } = newUser;
-  const token = jwt.sign({ id: safeUser.id, email: safeUser.email, role: safeUser.role }, getJwtSecret(), {
-    expiresIn: '7d'
-  });
+  const safeUser = sanitizeUser(newUser);
+  const token = signAuthToken({ ...safeUser, tokenVersion: 0 });
   return { user: safeUser, token };
 }
 
@@ -511,69 +620,139 @@ export async function loginUser({ email, password }) {
   }
 
   if (getStorageMode() === 'mongodb') {
-    const found = await User.findOne({ email: cleanEmail });
+    const found = await User.findOne({ email: cleanEmail }).select('+passwordHash');
     if (!found || !(await bcrypt.compare(password, found.passwordHash))) {
       const err = new Error('Invalid email or password.');
       err.status = 401;
       throw err;
     }
-    const safeUser = {
-      id: found._id.toString(),
-      name: found.name,
-      email: found.email,
-      phone: found.phone,
-      street: found.street,
-      city: found.city,
-      state: found.state,
-      pincode: found.pincode,
-      role: found.role
-    };
-    const token = jwt.sign({ id: safeUser.id, email: safeUser.email, role: safeUser.role }, getJwtSecret(), {
-      expiresIn: '7d'
-    });
+    found.lastLoginAt = new Date();
+    await found.save();
+    const safeUser = sanitizeUser(found);
+    const token = signAuthToken({ ...safeUser, tokenVersion: found.tokenVersion || 0 });
     return { user: safeUser, token };
   }
 
   const users = await readJsonFile(USERS_JSON_PATH, []);
-  const found = users.find((u) => u.email === cleanEmail);
+  const idx = users.findIndex((u) => u.email === cleanEmail);
+  const found = idx >= 0 ? users[idx] : null;
   if (!found || !(await bcrypt.compare(password, found.passwordHash))) {
     const err = new Error('Invalid email or password.');
     err.status = 401;
     throw err;
   }
-  const { passwordHash: _removed, ...safeUser } = found;
-  const token = jwt.sign({ id: safeUser.id, email: safeUser.email, role: safeUser.role }, getJwtSecret(), {
-    expiresIn: '7d'
-  });
+  users[idx] = { ...found, lastLoginAt: new Date().toISOString() };
+  await writeJsonFile(USERS_JSON_PATH, users);
+  const safeUser = sanitizeUser(users[idx]);
+  const token = signAuthToken({ ...safeUser, tokenVersion: Number(found.tokenVersion || 0) });
   return { user: safeUser, token };
 }
 
-export async function updateUserProfile(email, profileFields) {
-  const cleanEmail = String(email || '').trim().toLowerCase();
+export async function logoutUser(userId) {
+  if (!userId) return;
+  if (getStorageMode() === 'mongodb') {
+    await User.findByIdAndUpdate(userId, { $inc: { tokenVersion: 1 } });
+    return;
+  }
+  const users = await readJsonFile(USERS_JSON_PATH, []);
+  const idx = users.findIndex((u) => u.id === userId);
+  if (idx >= 0) {
+    users[idx] = { ...users[idx], tokenVersion: Number(users[idx].tokenVersion || 0) + 1 };
+    await writeJsonFile(USERS_JSON_PATH, users);
+  }
+}
+
+export async function updateUserProfile(userId, profileFields) {
+  if (!userId) {
+    const err = new Error('Authenticated user ID is required.');
+    err.status = 401;
+    throw err;
+  }
+
   const allowed = {
-    name: profileFields.name,
-    phone: profileFields.phone,
-    street: profileFields.street,
-    city: profileFields.city,
-    state: profileFields.state,
-    pincode: profileFields.pincode
+    name: String(profileFields.name || '').trim(),
+    phone: String(profileFields.phone || '').trim(),
+    street: String(profileFields.street || '').trim(),
+    city: String(profileFields.city || '').trim(),
+    state: String(profileFields.state || '').trim(),
+    pincode: String(profileFields.pincode || '').trim()
   };
 
-  if (getStorageMode() === 'mongodb' && cleanEmail) {
-    const updated = await User.findOneAndUpdate({ email: cleanEmail }, allowed, { new: true }).lean();
-    if (updated) {
-      const { passwordHash: _removed, _id, __v, ...rest } = updated;
-      return { id: _id.toString(), ...rest };
+  if (getStorageMode() === 'mongodb') {
+    const updated = await User.findByIdAndUpdate(userId, allowed, { new: true }).lean();
+    if (!updated) {
+      const err = new Error('Account not found.');
+      err.status = 404;
+      throw err;
     }
+    return sanitizeUser(updated);
+  }
+
+  const users = await readJsonFile(USERS_JSON_PATH, []);
+  const idx = users.findIndex((u) => u.id === userId);
+  if (idx < 0) {
+    const err = new Error('Account not found.');
+    err.status = 404;
+    throw err;
+  }
+  users[idx] = { ...users[idx], ...allowed };
+  await writeJsonFile(USERS_JSON_PATH, users);
+  return sanitizeUser(users[idx]);
+}
+
+export async function createOrPromoteAdmin({ name, email, password }) {
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  if (!cleanEmail.includes('@') || !password || password.length < 10) {
+    throw new Error('Valid admin email and password (min 10 chars) are required.');
+  }
+
+  const passwordHash = await bcrypt.hash(password, 12);
+
+  if (getStorageMode() === 'mongodb') {
+    const existing = await User.findOne({ email: cleanEmail });
+    if (existing) {
+      existing.name = name || existing.name;
+      existing.passwordHash = passwordHash;
+      existing.role = 'admin';
+      await existing.save();
+      return sanitizeUser(existing);
+    }
+    const created = await User.create({
+      name: name || 'Studio Admin',
+      email: cleanEmail,
+      passwordHash,
+      role: 'admin',
+      tokenVersion: 0
+    });
+    return sanitizeUser(created);
   }
 
   const users = await readJsonFile(USERS_JSON_PATH, []);
   const idx = users.findIndex((u) => u.email === cleanEmail);
   if (idx >= 0) {
-    users[idx] = { ...users[idx], ...allowed };
+    users[idx] = {
+      ...users[idx],
+      name: name || users[idx].name,
+      passwordHash,
+      role: 'admin'
+    };
     await writeJsonFile(USERS_JSON_PATH, users);
-    const { passwordHash: _removed, ...safe } = users[idx];
-    return safe;
+    return sanitizeUser(users[idx]);
   }
-  return { ...allowed, email: cleanEmail };
+
+  const adminUser = {
+    id: `adm-${Date.now()}`,
+    name: name || 'Studio Admin',
+    email: cleanEmail,
+    passwordHash,
+    phone: '',
+    street: '',
+    city: '',
+    state: '',
+    pincode: '',
+    role: 'admin',
+    tokenVersion: 0
+  };
+  await writeJsonFile(USERS_JSON_PATH, [...users, adminUser]);
+  return sanitizeUser(adminUser);
 }

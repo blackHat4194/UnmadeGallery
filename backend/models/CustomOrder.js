@@ -8,6 +8,7 @@ import mongoose from 'mongoose';
 const customOrderSchema = new mongoose.Schema(
   {
     id: { type: String, required: true, unique: true, index: true },
+    userId: { type: String, index: true, default: null },
     requestDate: { type: String, required: true },
     clientName: { type: String, required: true },
     clientEmail: { type: String, required: true },

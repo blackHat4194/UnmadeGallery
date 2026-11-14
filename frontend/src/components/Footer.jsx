@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { ArrowRight, ShieldCheck, Sparkles, HeartHandshake, CheckCircle2 } from 'lucide-react';
 
-export const Footer = ({ onNavigate }) => {
+export const Footer = ({ onNavigate, isAdmin = false }) => {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
 
@@ -140,11 +140,13 @@ export const Footer = ({ onNavigate }) => {
                   Return &amp; Exchange Terms
                 </button>
               </li>
-              <li>
-                <button onClick={() => onNavigate('admin')} className="text-[#C6A15B] hover:underline transition-colors cursor-pointer">
-                  Artisan Studio Admin
-                </button>
-              </li>
+              {isAdmin && (
+                <li>
+                  <button onClick={() => onNavigate('admin')} className="text-[#C6A15B] hover:underline transition-colors cursor-pointer">
+                    Artisan Studio Admin
+                  </button>
+                </li>
+              )}
             </ul>
           </div>
 

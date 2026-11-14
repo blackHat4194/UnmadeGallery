@@ -12,6 +12,7 @@ import { CustomOrderStudio } from './components/CustomOrderStudio.jsx';
 import { AboutView } from './components/AboutView.jsx';
 import { AccountView } from './components/AccountView.jsx';
 import { AdminDashboard } from './components/AdminDashboard.jsx';
+import { AdminLoginGate } from './components/AdminLoginGate.jsx';
 import { ProductDetailModal } from './components/ProductDetailModal.jsx';
 import { CartDrawer } from './components/CartDrawer.jsx';
 import { CheckoutModal } from './components/CheckoutModal.jsx';
@@ -24,10 +25,9 @@ import {
   STORY_SHOWCASE
 } from './data/products.js';
 import {
-  buildProductRecord,
   validateProductInput
 } from './lib/ecommerceLogic.js';
-import { apiUrl } from './lib/api.js';
+import { apiFetch, clearAuthToken, getAuthToken, setAuthToken } from './lib/api.js';
 import {
   getStoredProducts,
   saveStoredProducts,
@@ -35,23 +35,25 @@ import {
   saveStoredCart,
   getStoredWishlist,
   saveStoredWishlist,
-  getStoredOrders,
-  saveStoredOrder,
-  updateStoredOrderStatus,
-  getStoredCustomOrders,
-  updateStoredCustomOrderStatus
+  saveStoredOrdersList,
+  saveStoredCustomOrdersList,
+  saveStoredUserProfile,
+  clearPrivateSessionStorage
 } from './lib/storage.js';
 
 export default function App() {
-  // Application Data States
+  // Application Data & Auth States
+  const [currentUser, setCurrentUser] = useState(null);
   const [products, setProducts] = useState(() => getStoredProducts());
   const [collections, setCollections] = useState(FEATURED_COLLECTIONS);
   const [storyShowcase, setStoryShowcase] = useState(STORY_SHOWCASE);
   const [reviews, setReviews] = useState(CUSTOMER_REVIEWS);
   const [cart, setCart] = useState(() => getStoredCart());
   const [wishlist, setWishlist] = useState(() => getStoredWishlist());
-  const [orders, setOrders] = useState(() => getStoredOrders());
-  const [customRequests, setCustomRequests] = useState(() => getStoredCustomOrders());
+  const [orders, setOrders] = useState([]);
+  const [customRequests, setCustomRequests] = useState([]);
+
+  const isAdmin = currentUser?.role === 'admin';
 
   // Routing / View States
   const [activePage, setActivePage] = useState('home');
@@ -64,53 +66,106 @@ export default function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [confirmedOrder, setConfirmedOrder] = useState(null);
 
-  // Hydrate catalog, collections, story showcase, and reviews from data/gallery-data.json via API
+  const refreshPrivateOrders = async (user) => {
+    if (!user) {
+      setOrders([]);
+      setCustomRequests([]);
+      clearPrivateSessionStorage();
+      return;
+    }
+
+    const ordersEndpoint = user.role === 'admin' ? '/api/orders' : '/api/orders/my';
+    const customEndpoint = user.role === 'admin' ? '/api/custom-orders' : '/api/custom-orders/my';
+
+    try {
+      const [ordersRes, customRes] = await Promise.all([
+        apiFetch(ordersEndpoint),
+        apiFetch(customEndpoint)
+      ]);
+
+      if (ordersRes.ok) {
+        const ordData = await ordersRes.json();
+        if (Array.isArray(ordData.orders)) {
+          setOrders(ordData.orders);
+          saveStoredOrdersList(ordData.orders);
+        }
+      } else if (ordersRes.status === 401 || ordersRes.status === 403) {
+        setOrders([]);
+      }
+
+      if (customRes.ok) {
+        const custData = await customRes.json();
+        if (Array.isArray(custData.customOrders)) {
+          setCustomRequests(custData.customOrders);
+          saveStoredCustomOrdersList(custData.customOrders);
+        }
+      } else if (customRes.status === 401 || customRes.status === 403) {
+        setCustomRequests([]);
+      }
+    } catch {
+      // Keep current session state on transient network failure
+    }
+  };
+
+  // Hydrate public catalog + verify existing JWT session on mount
   useEffect(() => {
     let cancelled = false;
 
-    const loadGalleryData = async () => {
+    const loadInitialState = async () => {
       try {
-        const [galleryRes, ordersRes, customRes] = await Promise.all([
-          fetch(apiUrl('/api/gallery-data')),
-          fetch(apiUrl('/api/orders')),
-          fetch(apiUrl('/api/custom-orders'))
-        ]);
-
-        if (galleryRes.ok) {
+        const galleryRes = await apiFetch('/api/gallery-data');
+        if (galleryRes.ok && !cancelled) {
           const data = await galleryRes.json();
-          if (!cancelled) {
-            if (Array.isArray(data.products)) {
-              setProducts(data.products);
-              saveStoredProducts(data.products);
-              if (typeof window !== 'undefined') {
-                const pid = new URLSearchParams(window.location.search).get('productId');
-                if (pid) {
-                  const found = data.products.find((p) => p.id === pid);
-                  if (found) setSelectedProduct(found);
-                }
+          if (Array.isArray(data.products)) {
+            setProducts(data.products);
+            saveStoredProducts(data.products);
+            if (typeof window !== 'undefined') {
+              const pid = new URLSearchParams(window.location.search).get('productId');
+              if (pid) {
+                const found = data.products.find((p) => p.id === pid);
+                if (found) setSelectedProduct(found);
               }
             }
-            if (Array.isArray(data.collections)) setCollections(data.collections);
-            if (data.storyShowcase) setStoryShowcase(data.storyShowcase);
-            if (Array.isArray(data.reviews)) setReviews(data.reviews);
           }
-        }
-
-        if (ordersRes.ok && !cancelled) {
-          const ordData = await ordersRes.json();
-          if (Array.isArray(ordData.orders)) {
-            setOrders(ordData.orders);
-          }
-        }
-
-        if (customRes.ok && !cancelled) {
-          const custData = await customRes.json();
-          if (Array.isArray(custData.customOrders)) {
-            setCustomRequests(custData.customOrders);
-          }
+          if (Array.isArray(data.collections)) setCollections(data.collections);
+          if (data.storyShowcase) setStoryShowcase(data.storyShowcase);
+          if (Array.isArray(data.reviews)) setReviews(data.reviews);
         }
       } catch {
-        // Fallback smoothly to local bundled data if backend API is unavailable
+        // Fallback smoothly to bundled catalog if backend is unavailable
+      }
+
+      const token = getAuthToken();
+      if (!token) {
+        if (!cancelled) {
+          setCurrentUser(null);
+          setOrders([]);
+          setCustomRequests([]);
+          clearPrivateSessionStorage();
+        }
+        return;
+      }
+
+      try {
+        const meRes = await apiFetch('/api/auth/me');
+        if (!meRes.ok) {
+          clearAuthToken();
+          clearPrivateSessionStorage();
+          if (!cancelled) {
+            setCurrentUser(null);
+            setOrders([]);
+            setCustomRequests([]);
+          }
+          return;
+        }
+        const meData = await meRes.json();
+        if (!cancelled && meData.user) {
+          setCurrentUser(meData.user);
+          saveStoredUserProfile(meData.user);
+          await refreshPrivateOrders(meData.user);
+        }
+      } catch {
+        // Ignore transient network errors during session check
       }
     };
 
@@ -127,7 +182,7 @@ export default function App() {
       }
     }
 
-    loadGalleryData();
+    loadInitialState();
     return () => {
       cancelled = true;
     };
@@ -205,23 +260,55 @@ export default function App() {
     });
   };
 
-  // Order Placement (persists to MERN backend + local state)
-  const handleOrderSuccess = async (newOrder) => {
-    saveStoredOrder(newOrder);
-    setOrders((prev) => [newOrder, ...prev]);
-    setCart([]);
-    setIsCheckoutOpen(false);
-    setSelectedProduct(null);
-    setConfirmedOrder(newOrder);
+  const handleAuthSuccess = async (user, token) => {
+    if (token) {
+      setAuthToken(token);
+    }
+    setCurrentUser(user || null);
+    if (user) {
+      saveStoredUserProfile(user);
+    }
+    await refreshPrivateOrders(user);
+  };
+
+  const handleLogout = async () => {
     try {
-      await fetch(apiUrl('/api/orders'), {
+      if (getAuthToken()) {
+        await apiFetch('/api/auth/logout', { method: 'POST' });
+      }
+    } catch {
+      // Proceed cleanly with client-side session teardown
+    }
+    clearAuthToken();
+    clearPrivateSessionStorage();
+    setCurrentUser(null);
+    setOrders([]);
+    setCustomRequests([]);
+  };
+
+  // Order Placement (persists to MERN backend; links userId when authenticated)
+  const handleOrderSuccess = async (newOrder) => {
+    let savedOrder = newOrder;
+    try {
+      const res = await apiFetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newOrder)
       });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.order) {
+          savedOrder = data.order;
+        }
+      }
     } catch {
-      // Order already saved in local state/storage as fallback
+      // Confirm order locally if offline
     }
+    setOrders((prev) => [savedOrder, ...prev]);
+    setCart([]);
+    setIsCheckoutOpen(false);
+    setSelectedProduct(null);
+    setConfirmedOrder(savedOrder);
   };
 
   // Helper to apply galleryData payload from server
@@ -241,7 +328,7 @@ export default function App() {
     }
   };
 
-  // Admin handlers: validate input before updating local product state and syncing to data/gallery-data.json
+  // Admin handlers: enforce server-side admin JWT authentication before updating catalog/orders
   const handleUpdateProduct = async (productId, payload) => {
     const validation = validateProductInput(payload, products, productId);
     if (!validation.isValid) {
@@ -250,25 +337,22 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(apiUrl(`/api/products/${encodeURIComponent(productId)}`), {
+      const res = await apiFetch(`/api/products/${encodeURIComponent(productId)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(validation.sanitized)
       });
       const json = await res.json();
       if (!res.ok) {
+        if (res.status === 401) {
+          await handleLogout();
+        }
         return { ok: false, error: json.error || 'Failed to update product.' };
       }
       applyGalleryPayload(json.galleryData);
       return { ok: true, product: json.product };
     } catch {
-      // Fallback: update local product data state cleanly if API is unreachable
-      const existing = products.find((p) => p.id === productId);
-      const updated = buildProductRecord(validation.sanitized, existing);
-      const nextProducts = products.map((p) => (p.id === productId ? updated : p));
-      setProducts(nextProducts);
-      saveStoredProducts(nextProducts);
-      return { ok: true, product: updated };
+      return { ok: false, error: 'Unable to reach studio server to update creation.' };
     }
   };
 
@@ -280,34 +364,35 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(apiUrl('/api/products'), {
+      const res = await apiFetch('/api/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(validation.sanitized)
       });
       const json = await res.json();
       if (!res.ok) {
+        if (res.status === 401) {
+          await handleLogout();
+        }
         return { ok: false, error: json.error || 'Failed to publish product.' };
       }
       applyGalleryPayload(json.galleryData);
       return { ok: true, product: json.product };
     } catch {
-      // Fallback: validate and update local product data state cleanly if API is unreachable
-      const created = buildProductRecord(validation.sanitized);
-      const nextProducts = [created, ...products];
-      setProducts(nextProducts);
-      saveStoredProducts(nextProducts);
-      return { ok: true, product: created };
+      return { ok: false, error: 'Unable to reach studio server to publish creation.' };
     }
   };
 
   const handleDeleteProduct = async (productId) => {
     try {
-      const res = await fetch(apiUrl(`/api/products/${encodeURIComponent(productId)}`), {
+      const res = await apiFetch(`/api/products/${encodeURIComponent(productId)}`, {
         method: 'DELETE'
       });
       const json = await res.json();
       if (!res.ok) {
+        if (res.status === 401) {
+          await handleLogout();
+        }
         return { ok: false, error: json.error || 'Failed to delete product.' };
       }
       applyGalleryPayload(json.galleryData);
@@ -318,32 +403,40 @@ export default function App() {
   };
 
   const handleUpdateOrderStatus = async (orderId, status) => {
-    const updatedOrders = updateStoredOrderStatus(orderId, status);
-    setOrders(updatedOrders);
-    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status } : o)));
     try {
-      await fetch(apiUrl(`/api/orders/${encodeURIComponent(orderId)}/status`), {
+      const res = await apiFetch(`/api/orders/${encodeURIComponent(orderId)}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
       });
+      if (res.status === 401) {
+        await handleLogout();
+        return;
+      }
+      if (res.ok) {
+        setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status } : o)));
+      }
     } catch {
-      // Local state already updated
+      // Leave status unchanged on network failure
     }
   };
 
   const handleUpdateCustomStatus = async (requestId, status) => {
-    const updatedCustom = updateStoredCustomOrderStatus(requestId, status);
-    setCustomRequests(updatedCustom);
-    setCustomRequests((prev) => prev.map((c) => (c.id === requestId ? { ...c, status } : c)));
     try {
-      await fetch(apiUrl(`/api/custom-orders/${encodeURIComponent(requestId)}/status`), {
+      const res = await apiFetch(`/api/custom-orders/${encodeURIComponent(requestId)}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
       });
+      if (res.status === 401) {
+        await handleLogout();
+        return;
+      }
+      if (res.ok) {
+        setCustomRequests((prev) => prev.map((c) => (c.id === requestId ? { ...c, status } : c)));
+      }
     } catch {
-      // Local state already updated
+      // Leave status unchanged on network failure
     }
   };
 
@@ -352,19 +445,33 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F7F3EA] text-[#29231F]">
-      {/* If Admin view is active, render the dedicated Artisan Studio Console */}
+      {/* If Admin view is active, require authenticated Admin session before mounting AdminDashboard */}
       {activePage === 'admin' ? (
-        <AdminDashboard
-          products={products}
-          orders={orders}
-          customRequests={customRequests}
-          onUpdateProduct={handleUpdateProduct}
-          onAddProduct={handleAddProduct}
-          onDeleteProduct={handleDeleteProduct}
-          onUpdateOrderStatus={handleUpdateOrderStatus}
-          onUpdateCustomStatus={handleUpdateCustomStatus}
-          onExitAdmin={() => handleNavigate('home')}
-        />
+        isAdmin ? (
+          <AdminDashboard
+            products={products}
+            orders={orders}
+            customRequests={customRequests}
+            currentUser={currentUser}
+            onUpdateProduct={handleUpdateProduct}
+            onAddProduct={handleAddProduct}
+            onDeleteProduct={handleDeleteProduct}
+            onUpdateOrderStatus={handleUpdateOrderStatus}
+            onUpdateCustomStatus={handleUpdateCustomStatus}
+            onLogout={async () => {
+              await handleLogout();
+              handleNavigate('home');
+            }}
+            onExitAdmin={() => handleNavigate('home')}
+          />
+        ) : (
+          <AdminLoginGate
+            currentUser={currentUser}
+            onAuthSuccess={handleAuthSuccess}
+            onLogout={handleLogout}
+            onBackToStore={() => handleNavigate('home')}
+          />
+        )
       ) : (
         <>
           {/* Main Public Header */}
@@ -372,6 +479,7 @@ export default function App() {
             cartCount={cartCount}
             wishlistCount={wishlist.length}
             activePage={activePage}
+            isAdmin={isAdmin}
             onNavigate={handleNavigate}
             onOpenCart={() => setIsCartOpen(true)}
             onOpenSearch={() => setIsSearchOpen(true)}
@@ -410,8 +518,6 @@ export default function App() {
                 onSuccess={(newRequest) => {
                   if (newRequest && typeof newRequest === 'object') {
                     setCustomRequests((prev) => [newRequest, ...prev]);
-                  } else {
-                    setCustomRequests(getStoredCustomOrders());
                   }
                 }}
               />
@@ -424,18 +530,21 @@ export default function App() {
             {activePage === 'account' && (
               <AccountView
                 initialTab={pageParams.tab || 'orders'}
+                currentUser={currentUser}
                 orders={orders}
                 wishlistIds={wishlist}
                 allProducts={products}
                 onToggleWishlist={handleToggleWishlist}
                 onAddToCart={(p) => handleAddToCart(p, 1)}
                 onSelectProduct={(p) => setSelectedProduct(p)}
+                onAuthSuccess={handleAuthSuccess}
+                onLogout={handleLogout}
               />
             )}
           </main>
 
           {/* Editorial Footer */}
-          <Footer onNavigate={handleNavigate} />
+          <Footer isAdmin={isAdmin} onNavigate={handleNavigate} />
         </>
       )}
 

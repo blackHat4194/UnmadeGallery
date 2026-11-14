@@ -18,7 +18,8 @@ import {
   Upload,
   Trash2,
   CheckCircle2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  LogOut
 } from 'lucide-react';
 import { formatINR, validateProductInput } from '../lib/ecommerceLogic.js';
 import { ResinArtImage } from './ResinArtImage.jsx';
@@ -48,11 +49,13 @@ export const AdminDashboard = ({
   products,
   orders,
   customRequests,
+  currentUser,
   onUpdateProduct,
   onAddProduct,
   onDeleteProduct,
   onUpdateOrderStatus,
   onUpdateCustomStatus,
+  onLogout,
   onExitAdmin
 }) => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -240,13 +243,26 @@ export const AdminDashboard = ({
             </span>
           </div>
 
-          <button
-            onClick={onExitAdmin}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-[#E8DFD0] bg-[#3d342e] hover:bg-[#164B3B] rounded-lg transition-colors cursor-pointer"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Storefront</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onExitAdmin}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-[#E8DFD0] bg-[#3d342e] hover:bg-[#164B3B] rounded-lg transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Storefront</span>
+            </button>
+            {onLogout && (
+              <button
+                type="button"
+                onClick={onLogout}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-red-200 bg-[#3d342e] hover:bg-red-900/70 rounded-lg transition-colors cursor-pointer"
+                aria-label="Sign out of admin console"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Sign Out</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Horizontal Scrollable Tabs */}
@@ -409,8 +425,14 @@ export const AdminDashboard = ({
           </nav>
         </div>
 
-        {/* Exit Admin */}
-        <div className="pt-6 border-t border-[#3d342e]">
+        {/* Admin Session & Exit Controls */}
+        <div className="pt-6 border-t border-[#3d342e] space-y-2.5">
+          {currentUser && (
+            <div className="px-3 py-2 rounded-lg bg-[#3d342e]/60 text-[11px] text-[#E8DFD0]/90">
+              <p className="font-semibold text-[#F7F3EA] truncate">{currentUser.name || 'Studio Admin'}</p>
+              <p className="text-[10px] text-[#C6A15B] truncate">{currentUser.email}</p>
+            </div>
+          )}
           <button
             onClick={onExitAdmin}
             className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#E8DFD0]/80 hover:text-white bg-[#3d342e] hover:bg-[#164B3B] rounded-lg transition-colors cursor-pointer"
@@ -418,6 +440,16 @@ export const AdminDashboard = ({
             <ArrowLeft className="w-4 h-4" />
             <span>Return to Storefront</span>
           </button>
+          {onLogout && (
+            <button
+              type="button"
+              onClick={onLogout}
+              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-red-200 hover:text-white bg-[#3d342e]/70 hover:bg-red-900/70 rounded-lg transition-colors cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Sign Out</span>
+            </button>
+          )}
         </div>
       </aside>
 

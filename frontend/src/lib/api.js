@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+const TOKEN_STORAGE_KEY = 'unmade_jwt_token';
+
 const rawBase =
   typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL
     ? String(import.meta.env.VITE_API_URL).replace(/\/+$/, '')
@@ -30,4 +32,48 @@ export function resolveMediaUrl(url) {
   }
   const normalized = url.startsWith('/') ? url : `/${url}`;
   return `${API_BASE_URL}${normalized}`;
+}
+
+export function getAuthToken() {
+  if (typeof window === 'undefined') return null;
+  try {
+    return sessionStorage.getItem(TOKEN_STORAGE_KEY) || localStorage.getItem(TOKEN_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setAuthToken(token) {
+  if (typeof window === 'undefined' || !token) return;
+  try {
+    localStorage.setItem(TOKEN_STORAGE_KEY, token);
+  } catch {
+    // ignore storage quota errors
+  }
+}
+
+export function clearAuthToken() {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+export function authHeaders(extra = {}) {
+  const token = getAuthToken();
+  return {
+    ...extra,
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  };
+}
+
+export async function apiFetch(endpoint, options = {}) {
+  const { headers = {}, ...rest } = options;
+  return fetch(apiUrl(endpoint), {
+    ...rest,
+    headers: authHeaders(headers)
+  });
 }

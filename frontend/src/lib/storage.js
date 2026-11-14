@@ -14,98 +14,15 @@ const STORAGE_KEYS = {
   USER: 'unmade_user_profile_v1'
 };
 
-const SEED_ORDERS = [
-  {
-    id: 'ord-8821',
-    orderNumber: 'UG-2026-8821',
-    date: '26 Oct 2026, 04:30 PM',
-    items: [
-      { product: INITIAL_PRODUCTS[0], quantity: 1 } // Aura Botanical Pendant (₹2,450)
-    ],
-    subtotal: 2450,
-    shipping: 250,
-    tax: 74,
-    total: 2774,
-    status: 'Resin Pouring & Curing',
-    trackingNumber: 'DELHIVERY-UG982104',
-    address: {
-      fullName: 'Devika Singhania',
-      email: 'devika.s@example.com',
-      phone: '+91 98765 43210',
-      street: '402, Magnolia Enclave, 12th Main Road, Indiranagar',
-      city: 'Bengaluru',
-      state: 'Karnataka',
-      pincode: '560038',
-      country: 'India'
-    },
-    paymentMethod: 'Razorpay Online (UPI / Card / NetBanking)',
-    paymentId: 'pay_RAZORPAY_9821092',
-    paymentStatus: 'PAID'
-  },
-  {
-    id: 'ord-8794',
-    orderNumber: 'UG-2026-8794',
-    date: '14 Oct 2026, 11:15 AM',
-    items: [
-      { product: INITIAL_PRODUCTS[1], quantity: 1 }, // Verdant Marble Statement Hoops (₹3,100)
-      { product: INITIAL_PRODUCTS[5], quantity: 1 }  // Nocturne Emerald Coaster Set (₹3,600)
-    ],
-    subtotal: 6700,
-    shipping: 0,
-    tax: 201,
-    total: 6901,
-    status: 'Delivered',
-    trackingNumber: 'BLUEDART-UG772199',
-    address: {
-      fullName: 'Aarav Singhal',
-      email: 'aarav.singhal@example.com',
-      phone: '+91 98112 34567',
-      street: 'Flat 14-B, Silver Arch Towers, Marine Drive',
-      city: 'Mumbai',
-      state: 'Maharashtra',
-      pincode: '400020',
-      country: 'India'
-    },
-    paymentMethod: 'Razorpay Online (UPI / Card / NetBanking)',
-    paymentId: 'pay_RAZORPAY_8794123',
-    paymentStatus: 'PAID'
-  }
-];
-
-const SEED_CUSTOM_REQUESTS = [
-  {
-    id: 'cust-101',
-    requestDate: '28 Oct 2026',
-    clientName: 'Sunita Rao',
-    clientEmail: 'sunita.rao@example.com',
-    clientPhone: '+91 97654 32190',
-    itemType: 'Pyramid Keepsake',
-    flowerInclusions: ['Dried Red Rose Petals', 'White Baby’s Breath'],
-    metalAccents: '24k Gold Leaf',
-    resinBaseColor: 'Crystal Clear',
-    personalizedText: 'Forever in our hearts • 2026',
-    occasion: 'Wedding Anniversary Memorial Keepsake',
-    specialNotes: 'Please place the rose blossom centrally with gold flecks gently rising from the base upwards.',
-    estimatedPrice: 5900,
-    status: 'In Production'
-  },
-  {
-    id: 'cust-102',
-    requestDate: '30 Oct 2026',
-    clientName: 'Kabir Varma',
-    clientEmail: 'kabir.v@example.com',
-    clientPhone: '+91 98234 56789',
-    itemType: 'Statement Earrings',
-    flowerInclusions: ['Pressed Forget-me-nots'],
-    metalAccents: '24k Gold Leaf',
-    resinBaseColor: 'Deep Emerald Swirl',
-    personalizedText: 'K & V',
-    occasion: 'Birthday Gift',
-    specialNotes: 'Would love asymmetric marbling between the left and right ear.',
-    estimatedPrice: 4150,
-    status: 'Pending Review'
-  }
-];
+export const EMPTY_USER_PROFILE = {
+  name: '',
+  email: '',
+  phone: '',
+  street: '',
+  city: '',
+  state: '',
+  pincode: ''
+};
 
 export function getStoredProducts() {
   if (typeof window === 'undefined') return INITIAL_PRODUCTS;
@@ -142,12 +59,12 @@ export function saveStoredCart(cart) {
 }
 
 export function getStoredWishlist() {
-  if (typeof window === 'undefined') return ['unmade-001', 'unmade-002'];
+  if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.WISHLIST);
-    return raw ? JSON.parse(raw) : ['unmade-001', 'unmade-002'];
+    return raw ? JSON.parse(raw) : [];
   } catch {
-    return ['unmade-001'];
+    return [];
   }
 }
 
@@ -157,16 +74,12 @@ export function saveStoredWishlist(wishlist) {
 }
 
 export function getStoredOrders() {
-  if (typeof window === 'undefined') return SEED_ORDERS;
+  if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.ORDERS);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(SEED_ORDERS));
-      return SEED_ORDERS;
-    }
-    return JSON.parse(raw);
+    return raw ? JSON.parse(raw) : [];
   } catch {
-    return SEED_ORDERS;
+    return [];
   }
 }
 
@@ -177,9 +90,14 @@ export function saveStoredOrder(order) {
   localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated));
 }
 
+export function saveStoredOrdersList(orders) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
+}
+
 export function updateStoredOrderStatus(orderId, status) {
   const current = getStoredOrders();
-  const updated = current.map(o => o.id === orderId ? { ...o, status } : o);
+  const updated = current.map((o) => (o.id === orderId ? { ...o, status } : o));
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated));
   }
@@ -187,16 +105,12 @@ export function updateStoredOrderStatus(orderId, status) {
 }
 
 export function getStoredCustomOrders() {
-  if (typeof window === 'undefined') return SEED_CUSTOM_REQUESTS;
+  if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.CUSTOM_ORDERS);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEYS.CUSTOM_ORDERS, JSON.stringify(SEED_CUSTOM_REQUESTS));
-      return SEED_CUSTOM_REQUESTS;
-    }
-    return JSON.parse(raw);
+    return raw ? JSON.parse(raw) : [];
   } catch {
-    return SEED_CUSTOM_REQUESTS;
+    return [];
   }
 }
 
@@ -207,9 +121,14 @@ export function saveStoredCustomOrder(request) {
   localStorage.setItem(STORAGE_KEYS.CUSTOM_ORDERS, JSON.stringify(updated));
 }
 
+export function saveStoredCustomOrdersList(requests) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(STORAGE_KEYS.CUSTOM_ORDERS, JSON.stringify(requests));
+}
+
 export function updateStoredCustomOrderStatus(requestId, status) {
   const current = getStoredCustomOrders();
-  const updated = current.map(c => c.id === requestId ? { ...c, status } : c);
+  const updated = current.map((c) => (c.id === requestId ? { ...c, status } : c));
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_KEYS.CUSTOM_ORDERS, JSON.stringify(updated));
   }
@@ -217,25 +136,24 @@ export function updateStoredCustomOrderStatus(requestId, status) {
 }
 
 export function getStoredUserProfile() {
-  const defaultProfile = {
-    name: 'Devika Singhania',
-    email: 'devika.s@example.com',
-    phone: '+91 98765 43210',
-    street: '402, Magnolia Enclave, 12th Main Road, Indiranagar',
-    city: 'Bengaluru',
-    state: 'Karnataka',
-    pincode: '560038'
-  };
-  if (typeof window === 'undefined') return defaultProfile;
+  if (typeof window === 'undefined') return EMPTY_USER_PROFILE;
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.USER);
-    return raw ? JSON.parse(raw) : defaultProfile;
+    return raw ? { ...EMPTY_USER_PROFILE, ...JSON.parse(raw) } : EMPTY_USER_PROFILE;
   } catch {
-    return defaultProfile;
+    return EMPTY_USER_PROFILE;
   }
 }
 
 export function saveStoredUserProfile(profile) {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(profile));
+  const { passwordHash: _ph, token: _t, ...safe } = profile || {};
+  localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(safe));
+}
+
+export function clearPrivateSessionStorage() {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(STORAGE_KEYS.ORDERS);
+  localStorage.removeItem(STORAGE_KEYS.CUSTOM_ORDERS);
+  localStorage.removeItem(STORAGE_KEYS.USER);
 }

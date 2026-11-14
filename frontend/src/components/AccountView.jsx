@@ -3,49 +3,98 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Package, Heart, MapPin, User, CheckCircle2, ShieldCheck, LogIn, LogOut } from 'lucide-react';
 import { formatINR } from '../lib/ecommerceLogic.js';
-import { apiUrl } from '../lib/api.js';
+import { apiFetch, setAuthToken } from '../lib/api.js';
 import { ResinArtImage } from './ResinArtImage.jsx';
-import { getStoredUserProfile, saveStoredUserProfile } from '../lib/storage.js';
+import { EMPTY_USER_PROFILE, getStoredUserProfile, saveStoredUserProfile } from '../lib/storage.js';
 
 export const AccountView = ({
   initialTab = 'orders',
+  currentUser = null,
   orders,
   wishlistIds,
   allProducts,
   onToggleWishlist,
   onAddToCart,
-  onSelectProduct
+  onSelectProduct,
+  onAuthSuccess,
+  onLogout
 }) => {
   const [activeTab, setActiveTab] = useState(initialTab);
-  const [profile, setProfile] = useState(getStoredUserProfile());
+  const [profile, setProfile] = useState(() =>
+    currentUser ? { ...EMPTY_USER_PROFILE, ...currentUser } : getStoredUserProfile()
+  );
   const [selectedOrder, setSelectedOrder] = useState(orders[0] || null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [profileError, setProfileError] = useState(null);
   const [authMode, setAuthMode] = useState('login');
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [authName, setAuthName] = useState('');
   const [authFeedback, setAuthFeedback] = useState(null);
-  const [isSignedIn, setIsSignedIn] = useState(() => Boolean(typeof window !== 'undefined' && localStorage.getItem('unmade_jwt_token')));
+
+  const isSignedIn = Boolean(currentUser);
+
+  useEffect(() => {
+    if (currentUser) {
+      setProfile({ ...EMPTY_USER_PROFILE, ...currentUser });
+    } else {
+      setProfile(EMPTY_USER_PROFILE);
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (orders.length === 0) {
+      setSelectedOrder(null);
+    } else if (!selectedOrder || !orders.some((o) => o.id === selectedOrder.id)) {
+      setSelectedOrder(orders[0]);
+    }
+  }, [orders, selectedOrder]);
 
   const wishlistedProducts = allProducts.filter((p) => wishlistIds.includes(p.id));
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
-    saveStoredUserProfile(profile);
+    setProfileError(null);
+    setSaveSuccess(false);
+
+    if (!isSignedIn) {
+      setProfileError('Please sign in or register on the right panel to save your account details securely.');
+      setActiveTab('profile');
+      return;
+    }
+
     try {
-      await fetch(apiUrl('/api/auth/profile'), {
+      const res = await apiFetch('/api/auth/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(profile)
+        body: JSON.stringify({
+          name: profile.name,
+          phone: profile.phone,
+          street: profile.street,
+          city: profile.city,
+          state: profile.state,
+          pincode: profile.pincode
+        })
       });
+      const data = await res.json();
+      if (!res.ok) {
+        setProfileError(data.error || 'Unable to update profile.');
+        return;
+      }
+      const nextProfile = { ...EMPTY_USER_PROFILE, ...data.user };
+      setProfile(nextProfile);
+      saveStoredUserProfile(nextProfile);
+      if (onAuthSuccess && data.user) {
+        await onAuthSuccess(data.user);
+      }
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2500);
     } catch {
-      // Local profile still saved
+      setProfileError('Unable to reach server to save your profile.');
     }
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 2000);
   };
 
   const handleAuthSubmit = async (e) => {
@@ -57,7 +106,7 @@ export const AccountView = ({
         authMode === 'register'
           ? { name: authName, email: authEmail, password: authPassword }
           : { email: authEmail, password: authPassword };
-      const res = await fetch(apiUrl(endpoint), {
+      const res = await apiFetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -67,16 +116,19 @@ export const AccountView = ({
         setAuthFeedback({ type: 'error', text: data.error || 'Authentication failed.' });
         return;
       }
-      if (data.token && typeof window !== 'undefined') {
-        localStorage.setItem('unmade_jwt_token', data.token);
+      if (data.token) {
+        setAuthToken(data.token);
       }
       if (data.user) {
-        const nextProfile = { ...profile, ...data.user };
+        const nextProfile = { ...EMPTY_USER_PROFILE, ...data.user };
         setProfile(nextProfile);
         saveStoredUserProfile(nextProfile);
+        if (onAuthSuccess) {
+          await onAuthSuccess(data.user, data.token);
+        }
       }
-      setIsSignedIn(true);
       setAuthPassword('');
+      setProfileError(null);
       setAuthFeedback({
         type: 'success',
         text: authMode === 'register' ? 'Collector account created & signed in.' : 'Signed in successfully.'
@@ -86,11 +138,12 @@ export const AccountView = ({
     }
   };
 
-  const handleSignOut = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('unmade_jwt_token');
+  const handleSignOut = async () => {
+    if (onLogout) {
+      await onLogout();
     }
-    setIsSignedIn(false);
+    setProfile(EMPTY_USER_PROFILE);
+    setProfileError(null);
     setAuthFeedback({ type: 'success', text: 'Signed out of collector session.' });
   };
 
@@ -130,8 +183,12 @@ export const AccountView = ({
         </div>
 
         <div className="flex items-center gap-2 text-xs font-medium bg-white px-3.5 py-2 rounded-xl border border-[#E8DFD0] shadow-xs">
-          <ShieldCheck className="w-4 h-4 text-[#164B3B]" />
-          <span>Verified Client Account: {profile.email}</span>
+          <ShieldCheck className={`w-4 h-4 ${isSignedIn ? 'text-[#164B3B]' : 'text-[#C6A15B]'}`} />
+          <span>
+            {isSignedIn
+              ? `Signed in: ${currentUser.email}${currentUser.role === 'admin' ? ' (Admin)' : ''}`
+              : 'Guest Session · Sign in under Profile to view your orders'}
+          </span>
         </div>
       </div>
 
@@ -456,23 +513,34 @@ export const AccountView = ({
             <h2 className="font-serif text-xl font-medium text-[#29231F] mb-4">
               Personal Information
             </h2>
+            {profileError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs">
+                {profileError}
+              </div>
+            )}
             <form onSubmit={handleSaveProfile} className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-[#29231F]/70 mb-1">Full Name</label>
                 <input
                   type="text"
+                  required
                   value={profile.name}
                   onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                  placeholder="Enter your full name"
                   className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-[#29231F]/70 mb-1">Email Address</label>
+                <label className="block text-xs font-medium text-[#29231F]/70 mb-1">
+                  Email Address {isSignedIn && '(Verified Account Identity)'}
+                </label>
                 <input
                   type="email"
                   value={profile.email}
-                  onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                  className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
+                  readOnly
+                  disabled
+                  placeholder="Sign in to link email"
+                  className="w-full px-3 py-2 bg-[#E8DFD0]/40 border border-[#E8DFD0] rounded-lg text-xs text-[#29231F]/70 cursor-not-allowed"
                 />
               </div>
               <div>
@@ -481,6 +549,7 @@ export const AccountView = ({
                   type="tel"
                   value={profile.phone}
                   onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                  placeholder="+91 98765 43210"
                   className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
                 />
               </div>
@@ -574,10 +643,10 @@ export const AccountView = ({
                 <input
                   type="password"
                   required
-                  minLength={6}
+                  minLength={authMode === 'register' ? 8 : 1}
                   value={authPassword}
                   onChange={(e) => setAuthPassword(e.target.value)}
-                  placeholder="Min 6 characters"
+                  placeholder={authMode === 'register' ? 'Min 8 characters' : 'Enter password'}
                   className="w-full px-3 py-2 bg-[#F7F3EA] border border-[#E8DFD0] rounded-lg text-xs"
                 />
               </div>

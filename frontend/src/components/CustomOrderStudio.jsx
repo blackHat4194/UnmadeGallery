@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { Sparkles, CheckCircle2, ArrowRight, ShieldCheck } from 'lucide-react';
 import { estimateCustomOrderPrice, formatINR } from '../lib/ecommerceLogic.js';
-import { apiUrl } from '../lib/api.js';
+import { apiFetch } from '../lib/api.js';
 import { saveStoredCustomOrder } from '../lib/storage.js';
 
 export const CustomOrderStudio = ({ onSuccess }) => {
@@ -79,19 +79,29 @@ export const CustomOrderStudio = ({ onSuccess }) => {
       status: 'Pending Review'
     };
 
-    saveStoredCustomOrder(newRequest);
+    let savedRequest = newRequest;
     try {
-      await fetch(apiUrl('/api/custom-orders'), {
+      const res = await apiFetch('/api/custom-orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newRequest)
       });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.customOrder) {
+          savedRequest = data.customOrder;
+        }
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setErrorMsg(errData.error || 'Please check your commission details and try again.');
+        return;
+      }
     } catch {
-      // Saved in localStorage fallback
+      saveStoredCustomOrder(newRequest);
     }
-    setSubmittedId(randomId);
+    setSubmittedId(savedRequest.id);
     setIsSubmitted(true);
-    onSuccess(newRequest);
+    onSuccess(savedRequest);
   };
 
   return (

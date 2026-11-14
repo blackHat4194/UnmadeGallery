@@ -10,6 +10,7 @@ export const Header = ({
   cartCount,
   wishlistCount,
   activePage,
+  isAdmin = false,
   onNavigate,
   onOpenCart,
   onOpenSearch
@@ -120,20 +121,22 @@ export const Header = ({
             </span>
           </button>
 
-          {/* Admin Studio Portal Button */}
-          <button
-            onClick={() => onNavigate('admin')}
-            className={`hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium border rounded-md transition-colors cursor-pointer shrink-0 ${
-              activePage === 'admin'
-                ? 'border-[#164B3B] text-[#164B3B] bg-[#E8DFD0]/60'
-                : 'border-[#E8DFD0] text-[#29231F]/70 hover:border-[#C6A15B] hover:text-[#164B3B]'
-            }`}
-            title="Switch to Artisan Admin Studio"
-            aria-label="Admin Dashboard"
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-[#C6A15B]" />
-            <span>Admin</span>
-          </button>
+          {/* Admin Studio Portal Button (Only shown to authenticated admins) */}
+          {isAdmin && (
+            <button
+              onClick={() => onNavigate('admin')}
+              className={`hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium border rounded-md transition-colors cursor-pointer shrink-0 ${
+                activePage === 'admin'
+                  ? 'border-[#164B3B] text-[#164B3B] bg-[#E8DFD0]/60'
+                  : 'border-[#E8DFD0] text-[#29231F]/70 hover:border-[#C6A15B] hover:text-[#164B3B]'
+              }`}
+              title="Switch to Artisan Admin Studio"
+              aria-label="Admin Dashboard"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-[#C6A15B]" />
+              <span>Admin</span>
+            </button>
+          )}
 
           {/* Mobile Menu Hamburger */}
           <button
@@ -166,18 +169,20 @@ export const Header = ({
                 {link.label}
               </button>
             ))}
-            <div className="pt-2 flex items-center justify-between">
-              <button
-                onClick={() => {
-                  onNavigate('admin');
-                  setMobileMenuOpen(false);
-                }}
-                className="flex items-center gap-2 text-xs font-medium text-[#164B3B] bg-[#E8DFD0]/80 px-3 py-2 rounded-md"
-              >
-                <ShieldCheck className="w-4 h-4 text-[#C6A15B]" />
-                Artisan Admin Studio
-              </button>
-            </div>
+            {isAdmin && (
+              <div className="pt-2 flex items-center justify-between">
+                <button
+                  onClick={() => {
+                    onNavigate('admin');
+                    setMobileMenuOpen(false);
+                  }}
+                  className="flex items-center gap-2 text-xs font-medium text-[#164B3B] bg-[#E8DFD0]/80 px-3 py-2 rounded-md"
+                >
+                  <ShieldCheck className="w-4 h-4 text-[#C6A15B]" />
+                  Artisan Admin Studio
+                </button>
+              </div>
+            )}
           </nav>
         </div>
       )}
